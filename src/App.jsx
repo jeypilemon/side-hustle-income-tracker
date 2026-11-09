@@ -96,7 +96,6 @@ function App() {
   const monthGrowth = previousMonthTotal ? ((monthTotal-previousMonthTotal)/previousMonthTotal)*100 : null;
   const trailingMonths = Array.from({length:12},(_,i)=>{const d=new Date(Number(selectedMonth.slice(0,4)),Number(selectedMonth.slice(5,7))-1-i,1);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');return data.earnings.filter(x=>monthKey(x.periodEnd)===k).reduce((s,x)=>s+Number(x.net||0),0);});
   const averageMonthly = trailingMonths.reduce((s,v)=>s+v,0)/12;
-  const platformShare = platformTotals.map(x=>({...x,share:monthTotal>0?x.earned/monthTotal*100:0}));
   const latestPayouts = [...data.payouts].sort((a,b) => (b.payoutDate || '').localeCompare(a.payoutDate || '')).slice(0,5);
   const monthPayouts = data.payouts.filter(x => monthKey(x.payoutDate) === selectedMonth).reduce((s, x) => s + Number(x.amount || 0), 0);
   const yearTotal = data.earnings.filter(x => Number((x.periodEnd || '').slice(0, 4)) === year).reduce((s, x) => s + Number(x.net || 0), 0);
