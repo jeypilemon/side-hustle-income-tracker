@@ -60,7 +60,7 @@ function App() {
     if (!earnForm.periodStart || !earnForm.periodEnd || earnForm.periodEnd < earnForm.periodStart || !Number.isFinite(gross)) { setNotice('Check the reporting dates and gross amount.'); return; }
     const record = { ...earnForm, gross, tax, adjustments, net: gross - tax + adjustments, id: editing?.type === 'earning' ? editing.id : uid() };
     setData(d => ({ ...d, earnings: editing?.type === 'earning' ? d.earnings.map(x => x.id === editing.id ? record : x) : [record, ...d.earnings] }));
-    setEditing(null); setEarnForm({ platform:'YouTube', reportType:'Custom', periodStart:today(), periodEnd:today(), dateEntered:today(), gross:'', tax:'0', adjustments:'0', notes:'' }); setNotice('Earnings report saved.');
+    setEditing(null); setEarnForm({ platform:'Shopee Affiliate', reportType:'Weekly', periodStart:today(), periodEnd:today(), paymentReceivedDate:'', gross:'', tax:'0', adjustments:'0', notes:'' }); setNotice('Earnings report saved.');
   }
   function savePayout(e) {
     e.preventDefault();
@@ -73,8 +73,8 @@ function App() {
   function editPayout(x) { setEditing({type:'payout',id:x.id}); setPayForm({ platform:x.platform, payoutDate:x.payoutDate, amount:String(x.amount), reference:x.reference || '', relatedPeriod:x.relatedPeriod || '', notes:x.notes || '' }); setTab('add-payout'); }
   function remove(type, id) { if (!confirm('Delete this record? This cannot be undone.')) return; setData(d => ({...d, [type]:d[type].filter(x => x.id !== id)})); }
   function exportAll() {
-    const rows = [['Record Type','ID','Platform','Period Start','Period End','Date Entered','Gross','Withholding Tax','Adjustments','Net Commission','Payout Date','Payout Amount','Reference','Related Period','Notes']];
-    data.earnings.forEach(x => rows.push(['Earning',x.id,x.platform,x.periodStart,x.periodEnd,x.dateEntered,x.gross,x.tax,x.adjustments,x.net,'','','','',''+(x.notes || '')]));
+    const rows = [['Record Type','ID','Platform','Period Start','Period End','Payment Received Date','Gross','Withholding Tax','Adjustments','Net Commission','Payout Date','Payout Amount','Reference','Related Period','Notes']];
+    data.earnings.forEach(x => rows.push(['Earning',x.id,x.platform,x.periodStart,x.periodEnd,x.paymentReceivedDate,x.gross,x.tax,x.adjustments,x.net,'','','','',''+(x.notes || '')]));
     data.payouts.forEach(x => rows.push(['Payout',x.id,x.platform,'','','','','','','',x.payoutDate,x.amount,x.reference,x.relatedPeriod,x.notes]));
     downloadCsv('side-hustle-income-backup.csv', rows);
   }
