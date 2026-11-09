@@ -162,7 +162,7 @@ export async function loadSpreadsheetData() {
   return { earnings, payouts, target };
 }
 
-export async function saveSpreadsheetData(data) {
+export async function saveSpreadsheetData(data, deletedIds = { earnings: [], payouts: [] }) {
   // Always re-read the spreadsheet immediately before writing. Cloud-only rows
   // are retained; matching IDs with different values are treated as conflicts.
   const cloud = await loadSpreadsheetData();
@@ -183,13 +183,19 @@ export async function saveSpreadsheetData(data) {
     return [...merged.values()];
   };
 
-  const mergedEarnings = mergeRecords(cloud.earnings, data.earnings);
-  const mergedPayouts = mergeRecords(cloud.payouts, data.payouts);
+  const deletedEarnings = new Set((deletedIds.earnings || []).map(String));
+  const deletedPayouts = new Set((deletedIds.payouts || []).map(String));
+  const cloudEarnings = cloud.earnings.filter(row => !deletedEarnings.has(String(row.id)));
+  const cloudPayouts = cloud.payouts.filter(row => !deletedPayouts.has(String(row.id)));
+  const localEarnings = data.earnings.filter(row => !deletedEarnings.has(String(row.id)));
+  const localPayouts = data.payouts.filter(row => !deletedPayouts.has(String(row.id)));
+  const mergedEarnings = mergeRecords(cloudEarnings, localEarnings);
+  const mergedPayouts = mergeRecords(cloudPayouts, localPayouts);
   // Save a recovery point containing both sides before writing to Sheets.
   try {
     localStorage.setItem(
       'side-hustle-income-tracker-pre-sync-' + Date.now(),
-      JSON.stringify({ savedAt: new Date().toISOString(), local: data, cloud })
+      JSON.stringify({ savedAt: new Date().toISOString(), local: data, cloud, deletedIds })
     );
   } catch (error) {
     throw new Error('Could not create a pre-sync backup; sync was cancelled. ' + error.message);
