@@ -86,7 +86,7 @@ const dateString = value => {
 };
 
 export async function loadSpreadsheetData() {
-  await putValues(\"'Earnings Reports'!L4\", [['Payment Status']]);
+  await putValues("'Earnings Reports'!L4:M4", [['Payment Status', 'Amount Received']]);
   const [earningRows, payoutRows, settingRows] = await Promise.all([
     getValues("'Earnings Reports'!A5:M"),
     getValues("'Payout History'!A5:G"),
