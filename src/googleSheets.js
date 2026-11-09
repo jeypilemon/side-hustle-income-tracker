@@ -163,29 +163,59 @@ export async function loadSpreadsheetData() {
 }
 
 export async function saveSpreadsheetData(data) {
-  const earningRows = data.earnings.map(x => [
+  // Always re-read the spreadsheet immediately before writing. Cloud-only rows
+  // are retained; matching IDs with different values are treated as conflicts.
+  const cloud = await loadSpreadsheetData();
+  const fields = [
+    'platform', 'reportType', 'periodStart', 'periodEnd',
+    'paymentReceivedDate', 'gross', 'tax', 'adjustments', 'net',
+    'notes', 'paymentStatus', 'paidAmount'
+  ];
+  const payoutFields = [
+    'platform', 'payoutDate', 'amount', 'reference', 'relatedPeriod', 'notes'
+  ];
+  const normalized = (row, keys) => JSON.stringify(
+    Object.fromEntries(keys.map(key => [key, row[key] ?? (['gross','tax','adjustments','net','paidAmount','amount'].includes(key) ? 0 : '')]))
+  );
+  const mergeRecords = (cloudRows, localRows, keys, label) => {
+    const cloudById = new Map(cloudRows.map(row => [String(row.id), row]));
+    const localById = new Map(localRows.map(row => [String(row.id), row]));
+    const conflicts = [];
+    for (const [id, local] of localById) {
+      const remote = cloudById.get(id);
+      if (remote && normalized(remote, keys) !== normalized(local, keys)) {
+        conflicts.push(label + ' ID ' + id);
+      }
+    }
+    if (conflicts.length) {
+      throw new Error(
+        'Sync paused to protect your data. These records differ between this browser and Google Sheets: ' +
+        conflicts.slice(0, 5).join(', ') +
+        (conflicts.length > 5 ? ' and ' + (conflicts.length - 5) + ' more' : '') +
+        '. No spreadsheet records were changed. Keep both copies and resolve the differences before syncing again.'
+      );
+    }
+    const merged = new Map(cloudById);
+    for (const [id, local] of localById) if (!merged.has(id)) merged.set(id, local);
+    return [...merged.values()];
+  };
+
+  const mergedEarnings = mergeRecords(cloud.earnings, data.earnings, fields, 'Earnings');
+  const mergedPayouts = mergeRecords(cloud.payouts, data.payouts, payoutFields, 'Payout');
+  const earningRows = mergedEarnings.map(x => [
     x.platform, x.reportType, x.periodStart, x.periodEnd,
     x.paymentReceivedDate || '', Number(x.gross) || 0, Number(x.tax) || 0,
-    Number(x.adjustments) || 0, Number(x.net) || 0, x.notes || '', x.id || makeId(), x.paymentStatus || (x.paymentReceivedDate ? 'Paid' : 'Pending'), Number(x.paidAmount) || 0
+    Number(x.adjustments) || 0, Number(x.net) || 0, x.notes || '', x.id,
+    x.paymentStatus || (x.paymentReceivedDate ? 'Paid' : 'Pending'), Number(x.paidAmount) || 0
   ]);
-  const payoutRows = data.payouts.map(x => [
+  const payoutRows = mergedPayouts.map(x => [
     x.platform, x.payoutDate, Number(x.amount) || 0, x.reference || '',
-    x.relatedPeriod || '', x.notes || '', x.id || makeId()
+    x.relatedPeriod || '', x.notes || '', x.id
   ]);
-
-  // Read existing table lengths so sync only touches populated data rows.
-  // Never clear open-ended column ranges: that can erase formulas or unrelated content.
-  const [existingEarnings, existingPayouts] = await Promise.all([
-    getValues("'Earnings Reports'!A5:M"),
-    getValues("'Payout History'!A5:G")
-  ]);
-  const existingEarningCount = existingEarnings.filter(row => row.some(value => value !== '' && value !== null && value !== undefined)).length;
-  const existingPayoutCount = existingPayouts.filter(row => row.some(value => value !== '' && value !== null && value !== undefined)).length;
 
   const updates = [];
   if (earningRows.length) updates.push({ range: "'Earnings Reports'!A5:M", majorDimension: 'ROWS', values: earningRows });
   if (payoutRows.length) updates.push({ range: "'Payout History'!A5:G", majorDimension: 'ROWS', values: payoutRows });
-
   if (updates.length) {
     await api('/values:batchUpdate', {
       method: 'POST',
@@ -193,24 +223,27 @@ export async function saveSpreadsheetData(data) {
     });
   }
 
+  // Clear only trailing rows after the merged dataset, never rows that were
+  // absent locally but still present in the spreadsheet.
+  const existingEarnings = await getValues("'Earnings Reports'!A5:M");
+  const existingPayouts = await getValues("'Payout History'!A5:G");
+  const earningCount = existingEarnings.filter(row => row.some(value => value !== '' && value !== null && value !== undefined)).length;
+  const payoutCount = existingPayouts.filter(row => row.some(value => value !== '' && value !== null && value !== undefined)).length;
   const clears = [];
-  if (existingEarningCount > earningRows.length) {
-    clears.push("'Earnings Reports'!A" + (5 + earningRows.length) + ":M" + (4 + existingEarningCount));
-  }
-  if (existingPayoutCount > payoutRows.length) {
-    clears.push("'Payout History'!A" + (5 + payoutRows.length) + ":G" + (4 + existingPayoutCount));
-  }
+  if (earningCount > earningRows.length) clears.push("'Earnings Reports'!A" + (5 + earningRows.length) + ":M" + (4 + earningCount));
+  if (payoutCount > payoutRows.length) clears.push("'Payout History'!A" + (5 + payoutRows.length) + ":G" + (4 + payoutCount));
   if (clears.length) {
-    await api('/values:batchClear', {
-      method: 'POST',
-      body: JSON.stringify({ ranges: clears })
-    });
+    await api('/values:batchClear', { method: 'POST', body: JSON.stringify({ ranges: clears }) });
   }
 
   const settings = await getValues("'Settings'!A1:B100");
   const targetIndex = settings.findIndex(row => String(row[0] || '').trim() === 'Monthly income target');
-  if (targetIndex >= 0) {
+  if (targetIndex >= 0 && Number(data.target) !== Number(cloud.target)) {
     await putValues(`'Settings'!B${targetIndex + 1}`, [[Number(data.target) || 10000]]);
   }
-  return true;
+  return {
+    earnings: mergedEarnings,
+    payouts: mergedPayouts,
+    target: Number(data.target) || Number(cloud.target) || 10000
+  };
 }
