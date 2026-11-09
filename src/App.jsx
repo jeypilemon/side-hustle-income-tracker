@@ -4,6 +4,7 @@ import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 
 const PLATFORMS = ['YouTube', 'TikTok Affiliate', 'Shopee Affiliate', 'Lazada Affiliate', 'Other'];
 const STORE_KEY = 'side-hustle-income-tracker-v1';
+const DELETED_KEY = STORE_KEY + '-pending-deletions';
 const money = n => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 2 }).format(Number(n || 0));
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const monthKey = d => (d || '').slice(0, 7);
@@ -25,6 +26,7 @@ function downloadCsv(filename, rows) {
 
 function App() {
   const [data, setData] = useState(loadData);
+  const [deletedIds, setDeletedIds] = useState(() => { try { return JSON.parse(localStorage.getItem(DELETED_KEY) || '{\"earnings\":[],\"payouts\":[]}'); } catch { return { earnings: [], payouts: [] }; } });
   const [tab, setTab] = useState('overview');
   const [period, setPeriod] = useState('month');
   const [earningSort, setEarningSort] = useState({ key: 'periodEnd', direction: 'desc' });
@@ -39,6 +41,7 @@ function App() {
   const [payForm, setPayForm] = useState({ platform: 'YouTube', payoutDate: today(), amount: '', reference: '', relatedPeriod: '', notes: '' });
 
   useEffect(() => { localStorage.setItem(STORE_KEY, JSON.stringify(data)); }, [data]);
+  useEffect(() => { localStorage.setItem(DELETED_KEY, JSON.stringify(deletedIds)); }, [deletedIds]);
 
   useEffect(() => { prepareGoogleAuth().catch(error => setNotice('Google sign-in could not initialize: ' + error.message)); }, []);
 
@@ -47,11 +50,12 @@ function App() {
     setSyncing(true);
     const timer = setTimeout(async () => {
       try {
-        const syncedData = await saveSpreadsheetData(data);
+        const syncedData = await saveSpreadsheetData(data, deletedIds);
         if (JSON.stringify(syncedData) !== JSON.stringify(data)) {
           setData(syncedData);
         }
-        setNotice('Google Sheets synced safely. Cloud-only records were preserved.');
+        setDeletedIds({ earnings: [], payouts: [] });
+        setNotice('Google Sheets synced. Changes and deletions were applied safely.');
       } catch (error) {
         setNotice('Sync failed: ' + error.message + ' Reconnect your Google account if access expired.');
         setCloudConnected(false);
@@ -60,7 +64,7 @@ function App() {
       }
     }, 900);
     return () => clearTimeout(timer);
-  }, [data, cloudConnected]);
+  }, [data, cloudConnected, deletedIds]);
 
   async function connectGoogleSheets() {
     setConnecting(true);
@@ -95,9 +99,11 @@ function App() {
         });
         return [...merged.values()];
       };
+      const deletedEarnings = new Set(deletedIds.earnings || []);
+      const deletedPayouts = new Set(deletedIds.payouts || []);
       const mergedData = {
-        earnings: mergeById(cloudData.earnings, data.earnings),
-        payouts: mergeById(cloudData.payouts, data.payouts),
+        earnings: mergeById(cloudData.earnings.filter(x => !deletedEarnings.has(String(x.id))), data.earnings),
+        payouts: mergeById(cloudData.payouts.filter(x => !deletedPayouts.has(String(x.id))), data.payouts),
         target: Number(data.target) || Number(cloudData.target) || 10000
       };
 
@@ -228,7 +234,7 @@ function App() {
   }
   function editEarning(x) { setEditing({type:'earning',id:x.id}); setEarnForm({ platform:x.platform, reportType:x.reportType, periodStart:x.periodStart, periodEnd:x.periodEnd, paymentReceivedDate:x.paymentReceivedDate||'', paymentStatus:paymentState(x), paidAmount:String(receivedAmount(x)), gross:String(x.gross), tax:String(x.tax), adjustments:String(x.adjustments), notes:x.notes || '' }); setTab('add-earning'); }
   function editPayout(x) { setEditing({type:'payout',id:x.id}); setPayForm({ platform:x.platform, payoutDate:x.payoutDate, amount:String(x.amount), reference:x.reference || '', relatedPeriod:x.relatedPeriod || '', notes:x.notes || '' }); setTab('add-payout'); }
-  function remove(type, id) { if (!confirm('Delete this record? This cannot be undone.')) return; setData(d => ({...d, [type]:d[type].filter(x => x.id !== id)})); }
+  function remove(type, id) { if (!confirm('Delete this record? This cannot be undone.')) return; setDeletedIds(current => ({ ...current, [type]: [...new Set([...(current[type] || []), String(id)])] })); setData(d => ({...d, [type]:d[type].filter(x => String(x.id) !== String(id))})); setNotice(cloudConnected ? 'Record deleted locally. Google Sheets deletion will sync shortly.' : 'Record deleted locally. Connect Google Sheets later to sync this deletion.'); }
   function exportAll() {
     const rows = [['Record Type','ID','Platform','Period Start','Period End','Payment Received Date','Payment Status','Amount Received','Gross','Withholding Tax','Adjustments','Net Commission','Payout Date','Payout Amount','Reference','Related Period','Notes']];
     data.earnings.forEach(x => rows.push(['Earning',x.id,x.platform,x.periodStart,x.periodEnd,x.paymentReceivedDate,x.paymentStatus || (x.paymentReceivedDate ? 'Paid' : 'Pending'),x.paidAmount ?? ((x.paymentStatus === 'Paid' || (!x.paymentStatus && x.paymentReceivedDate)) ? x.net : 0),x.gross,x.tax,x.adjustments,x.net,'','','','','',''+(x.notes || '')]));
