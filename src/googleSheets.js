@@ -24,22 +24,37 @@ function loadIdentityScript() {
   });
 }
 
-export async function authorizeGoogle() {
-  await loadIdentityScript();
+export function prepareGoogleAuth() {
+  return loadIdentityScript().then(() => {
+    if (!tokenClient) {
+      tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPE,
+        callback: response => {
+          if (response.error) {
+            pendingReject?.(new Error(response.error_description || response.error));
+            return;
+          }
+          accessToken = response.access_token;
+          pendingResolve?.();
+        },
+        error_callback: error => pendingReject?.(new Error(error.message || 'Google authorization failed.'))
+      });
+    }
+  });
+}
+
+let pendingResolve = null;
+let pendingReject = null;
+
+export function authorizeGoogle() {
+  if (!tokenClient) {
+    return Promise.reject(new Error('Google sign-in is still loading. Please wait a moment and try again.'));
+  }
   return new Promise((resolve, reject) => {
-    tokenClient = window.google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPE,
-      callback: response => {
-        if (response.error) {
-          reject(new Error(response.error_description || response.error));
-          return;
-        }
-        accessToken = response.access_token;
-        resolve();
-      },
-      error_callback: error => reject(new Error(error.message || 'Google authorization failed.'))
-    });
+    pendingResolve = resolve;
+    pendingReject = reject;
+    // Must run synchronously inside the button click to preserve browser user activation.
     tokenClient.requestAccessToken({ prompt: 'consent' });
   });
 }
