@@ -64,25 +64,47 @@ function App() {
     try {
       await authorizeGoogle();
       const cloudData = await loadSpreadsheetData();
-      const cloudHasRecords = cloudData.earnings.length > 0 || cloudData.payouts.length > 0;
-      const localHasRecords = data.earnings.length > 0 || data.payouts.length > 0;
-      if (cloudHasRecords) {
-        setData(cloudData);
-        setNotice('Connected. Your Google Sheets records have been loaded.');
-      } else if (localHasRecords) {
-        const migrate = confirm('Your spreadsheet has no earnings or payout records yet. Import the records currently saved in this browser into Google Sheets?');
-        if (migrate) {
-          setCloudConnected(true);
-          setNotice('Local records will be migrated to Google Sheets.');
-        } else {
-          setNotice('Migration cancelled. Your local records remain in this browser; Google Sheets was not connected.');
-          return;
-        }
-      } else {
-        setData(cloudData);
-        setNotice('Connected to Google Sheets. You can start entering reports.');
+
+      // Preserve both sides on connection. The previous implementation replaced
+      // the entire browser dataset whenever *any* cloud records existed, which
+      // could silently discard offline/platform-specific records.
+      const snapshot = {
+        savedAt: new Date().toISOString(),
+        local: data,
+        cloud: cloudData
+      };
+      try {
+        localStorage.setItem(STORE_KEY + '-pre-sync-' + Date.now(), JSON.stringify(snapshot));
+      } catch (backupError) {
+        throw new Error('Could not create a pre-sync recovery snapshot. No data was synchronized. ' + backupError.message);
       }
+
+      const mergeById = (cloudRows, localRows) => {
+        const merged = new Map();
+        [...cloudRows, ...localRows].forEach((row, index) => {
+          const key = row.id ? String(row.id) : [
+            row.platform, row.periodStart || row.payoutDate || '',
+            row.periodEnd || '', row.gross ?? row.amount ?? '', row.net ?? ''
+          ].join('|');
+          // Local copy wins for a matching ID; records found only in either
+          // location are retained. This avoids dropping offline additions.
+          merged.set(key || 'record-' + index, row);
+        });
+        return [...merged.values()];
+      };
+      const mergedData = {
+        earnings: mergeById(cloudData.earnings, data.earnings),
+        payouts: mergeById(cloudData.payouts, data.payouts),
+        target: Number(data.target) || Number(cloudData.target) || 10000
+      };
+
+      setData(mergedData);
       setCloudConnected(true);
+      setNotice(
+        'Connected safely. Local and Google Sheets records were merged (' +
+        mergedData.earnings.length + ' earnings, ' + mergedData.payouts.length +
+        ' payouts). A pre-sync recovery snapshot was saved in this browser.'
+      );
     } catch (error) {
       setNotice('Google connection failed: ' + error.message);
     } finally {
