@@ -75,3 +75,68 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
   .kpi strong{font-size:14px}
   .head-actions .reset-btn{flex:1}
 }
+
+/* Vivo V29 5G and similar narrow mobile layouts (390–400 CSS px) */
+@media (max-width: 480px) {
+  body { min-width: 320px; }
+  .sidebar { padding: 9px 10px 8px; }
+  .brand { gap: 9px; padding: 0 4px 8px; }
+  .brand strong { font-size: 14px; }
+  .brand span { font-size: 10px; }
+  .sidebar nav { gap: 3px; }
+  .sidebar nav button { flex: 0 0 auto; font-size: 11px; padding: 8px 9px; min-height: 36px; }
+  .sidebar-bottom { font-size: 10px; line-height: 1.35; padding: 7px 5px 1px; overflow-wrap: anywhere; }
+  .main { padding: 15px 10px 24px; }
+  .topbar { align-items: flex-start; gap: 8px; margin-bottom: 13px; }
+  .eyebrow { font-size: 9px; letter-spacing: 1.2px; }
+  .topbar h1 { font-size: 20px; line-height: 1.15; }
+  .month-control { min-width: 0; font-size: 9px; gap: 4px; }
+  .month-control input { width: 132px; max-width: 132px; min-width: 0; padding: 7px 6px; font-size: 11px; }
+  .notice { padding: 9px 10px; font-size: 10px; line-height: 1.45; gap: 8px; overflow-wrap: anywhere; }
+  .welcome { align-items: center; padding: 17px 12px; gap: 8px; margin-bottom: 12px; }
+  .welcome > div:first-child { min-width: 0; flex: 1 1 auto; }
+  .welcome h2 { font-size: 17px; line-height: 1.25; margin: 7px 0; }
+  .welcome p { font-size: 10px; line-height: 1.45; max-width: none; margin-top: 6px; }
+  .goal-ring { width: 76px; height: 76px; flex: 0 0 76px; border-width: 4px; }
+  .goal-ring span { font-size: 6px; letter-spacing: .5px; }
+  .goal-ring strong { font-size: 17px; margin: 2px 0; }
+  .goal-ring small { font-size: 6px; text-align: center; line-height: 1.2; max-width: 64px; overflow-wrap: anywhere; }
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .kpi { padding: 11px 9px; gap: 5px; border-radius: 10px; }
+  .kpi span { font-size: 9px; line-height: 1.3; }
+  .kpi strong { font-size: 14px; line-height: 1.2; letter-spacing: -.35px; overflow-wrap: anywhere; }
+  .kpi small { font-size: 8px; line-height: 1.35; }
+  .panel { padding: 13px 10px; margin-bottom: 11px; border-radius: 10px; }
+  .panel-head { gap: 8px; margin-bottom: 11px; }
+  .panel-head h3 { font-size: 13px; line-height: 1.3; }
+  .panel-head p { font-size: 9px; line-height: 1.4; }
+  .text-btn { font-size: 9px; white-space: nowrap; }
+  .platform-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .platform-card { padding: 9px; min-width: 0; }
+  .platform-card span { font-size: 9px; line-height: 1.3; margin-bottom: 6px; }
+  .platform-card strong { font-size: 13px; overflow-wrap: anywhere; }
+  .platform-card small { font-size: 8px; }
+  .chart-wrap { height: 215px; }
+  .form-grid { gap: 11px; }
+  .field { font-size: 10px; gap: 6px; }
+  .field input, .field select, .settings-block input { min-height: 42px; padding: 9px 10px; font-size: 13px; }
+  .paid-form-label { font-size: 11px; }
+  .calculated { font-size: 12px; padding: 9px 10px; }
+  .primary, .secondary { font-size: 11px; padding: 9px 11px; }
+  .settings-block { padding: 13px 0; }
+  .settings-block h4 { font-size: 12px; }
+  .settings-block > label, .muted, .warning-box { font-size: 10px; }
+  .button-row { gap: 7px; }
+  .button-row > * { min-width: 0; font-size: 10px; padding: 9px 7px; }
+  footer { font-size: 9px; }
+}
+@media (max-width: 360px) {
+  .main { padding-left: 8px; padding-right: 8px; }
+  .welcome h2 { font-size: 15px; }
+  .welcome p { font-size: 9px; }
+  .goal-ring { width: 68px; height: 68px; flex-basis: 68px; }
+  .goal-ring strong { font-size: 15px; }
+  .kpi strong { font-size: 12px; }
+  .sidebar nav button { font-size: 10px; padding: 7px 8px; }
+  .month-control input { width: 120px; max-width: 120px; }
+}
