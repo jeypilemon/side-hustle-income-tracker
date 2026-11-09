@@ -159,21 +159,13 @@ export async function loadSpreadsheetData() {
   const targetRow = settingRows.find(row => String(row[0] || '').trim() === 'Monthly income target');
   if (targetRow) target = Number(targetRow[1]) || 10000;
 
-  return { earnings, payouts, target };
+  return { earnings, payouts, target, _syncMeta: { earningRows: earningRows.length, payoutRows: payoutRows.length, targetRow: targetRow ? settingRows.indexOf(targetRow) + 1 : null } };
 }
 
 export async function saveSpreadsheetData(data, deletedIds = { earnings: [], payouts: [] }) {
   // Always re-read the spreadsheet immediately before writing. Cloud-only rows
   // are retained; matching IDs with different values are treated as conflicts.
   const cloud = await loadSpreadsheetData();
-  const fields = [
-    'platform', 'reportType', 'periodStart', 'periodEnd',
-    'paymentReceivedDate', 'gross', 'tax', 'adjustments', 'net',
-    'notes', 'paymentStatus', 'paidAmount'
-  ];
-  const payoutFields = [
-    'platform', 'payoutDate', 'amount', 'reference', 'relatedPeriod', 'notes'
-  ];
   const mergeRecords = (cloudRows, localRows) => {
     // Deterministic merge: retain every cloud-only row, add local-only rows,
     // and let the active browser's version win for matching IDs. This avoids
@@ -222,23 +214,17 @@ export async function saveSpreadsheetData(data, deletedIds = { earnings: [], pay
     });
   }
 
-  // Clear only trailing rows after the merged dataset, never rows that were
-  // absent locally but still present in the spreadsheet.
-  const existingEarnings = await getValues("'Earnings Reports'!A5:M");
-  const existingPayouts = await getValues("'Payout History'!A5:G");
-  const earningCount = existingEarnings.filter(row => row.some(value => value !== '' && value !== null && value !== undefined)).length;
-  const payoutCount = existingPayouts.filter(row => row.some(value => value !== '' && value !== null && value !== undefined)).length;
+  // Reuse row counts from the initial read instead of making two more read requests.
+  const existingEarningCount = cloud._syncMeta?.earningRows || 0;
+  const existingPayoutCount = cloud._syncMeta?.payoutRows || 0;
   const clears = [];
-  if (earningCount > earningRows.length) clears.push("'Earnings Reports'!A" + (5 + earningRows.length) + ":M" + (4 + earningCount));
-  if (payoutCount > payoutRows.length) clears.push("'Payout History'!A" + (5 + payoutRows.length) + ":G" + (4 + payoutCount));
-  if (clears.length) {
-    await api('/values:batchClear', { method: 'POST', body: JSON.stringify({ ranges: clears }) });
-  }
+  if (existingEarningCount > earningRows.length) clears.push("'Earnings Reports'!A" + (5 + earningRows.length) + ":M" + (4 + existingEarningCount));
+  if (existingPayoutCount > payoutRows.length) clears.push("'Payout History'!A" + (5 + payoutRows.length) + ":G" + (4 + existingPayoutCount));
+  if (clears.length) await api('/values:batchClear', { method: 'POST', body: JSON.stringify({ ranges: clears }) });
 
-  const settings = await getValues("'Settings'!A1:B100");
-  const targetIndex = settings.findIndex(row => String(row[0] || '').trim() === 'Monthly income target');
-  if (targetIndex >= 0 && Number(data.target) !== Number(cloud.target)) {
-    await putValues(`'Settings'!B${targetIndex + 1}`, [[Number(data.target) || 10000]]);
+  const targetIndex = cloud._syncMeta?.targetRow;
+  if (targetIndex && Number(data.target) !== Number(cloud.target)) {
+    await putValues("'Settings'!B" + targetIndex, [[Number(data.target) || 10000]]);
   }
   return {
     earnings: mergedEarnings,
