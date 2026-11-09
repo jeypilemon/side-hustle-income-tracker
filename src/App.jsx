@@ -100,7 +100,7 @@ function App() {
   const monthPayouts = data.payouts.filter(x => monthKey(x.payoutDate) === selectedMonth).reduce((s, x) => s + Number(x.amount || 0), 0);
   const yearTotal = data.earnings.filter(x => Number((x.periodEnd || '').slice(0, 4)) === year).reduce((s, x) => s + Number(x.net || 0), 0);
   const yearPayouts = data.payouts.filter(x => Number((x.payoutDate || '').slice(0, 4)) === year).reduce((s, x) => s + Number(x.amount || 0), 0);
-  const platformTotals = PLATFORMS.map(platform => ({ platform, earned: monthEarnings.filter(x => x.platform === platform).reduce((s, x) => s + Number(x.net || 0), 0) }));
+  const platformTotals = PLATFORMS.map(platform => { const earned = monthEarnings.filter(x => x.platform === platform).reduce((s, x) => s + Number(x.net || 0), 0); return { platform, earned, share: monthTotal > 0 ? earned / monthTotal * 100 : 0 }; });
   const chartData = Array.from({ length: 12 }, (_, i) => {
     const d = new Date(year, new Date(selectedMonth + '-01T00:00:00').getMonth() - 11 + i, 1);
     const key = d.toISOString().slice(0, 7);
