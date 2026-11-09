@@ -88,7 +88,7 @@ const dateString = value => {
 export async function loadSpreadsheetData() {
   await putValues(\"'Earnings Reports'!L4\", [['Payment Status']]);
   const [earningRows, payoutRows, settingRows] = await Promise.all([
-    getValues("'Earnings Reports'!A5:L"),
+    getValues("'Earnings Reports'!A5:M"),
     getValues("'Payout History'!A5:G"),
     getValues("'Settings'!A1:C100")
   ]);
@@ -104,7 +104,7 @@ export async function loadSpreadsheetData() {
       periodStart: dateString(row[2]), periodEnd: dateString(row[3]),
       paymentReceivedDate: dateString(row[4]), gross: Number(row[5]) || 0,
       tax: Number(row[6]) || 0, adjustments: Number(row[7]) || 0,
-      net: Number(row[8]) || 0, notes: String(row[9] || ''), paymentStatus: String(row[11] || (row[4] ? 'Paid' : 'Pending'))
+      net: Number(row[8]) || 0, notes: String(row[9] || ''), paymentStatus: String(row[11] || (row[4] ? 'Paid' : 'Pending')), paidAmount: Number(row[12]) || ((row[11] === 'Paid' || (!row[11] && row[4])) ? Number(row[8]) || 0 : 0)
     });
   });
 
@@ -142,7 +142,7 @@ export async function saveSpreadsheetData(data) {
   const earningRows = data.earnings.map(x => [
     x.platform, x.reportType, x.periodStart, x.periodEnd,
     x.paymentReceivedDate || '', Number(x.gross) || 0, Number(x.tax) || 0,
-    Number(x.adjustments) || 0, Number(x.net) || 0, x.notes || '', x.id || makeId(), x.paymentStatus || (x.paymentReceivedDate ? 'Paid' : 'Pending')
+    Number(x.adjustments) || 0, Number(x.net) || 0, x.notes || '', x.id || makeId(), x.paymentStatus || (x.paymentReceivedDate ? 'Paid' : 'Pending'), Number(x.paidAmount) || 0
   ]);
   const payoutRows = data.payouts.map(x => [
     x.platform, x.payoutDate, Number(x.amount) || 0, x.reference || '',
@@ -152,11 +152,11 @@ export async function saveSpreadsheetData(data) {
   // These are dedicated data-table areas. Headers, formatting, filters and other tabs are untouched.
   await api('/values:batchClear', {
     method: 'POST',
-    body: JSON.stringify({ ranges: ["'Earnings Reports'!A5:L", "'Payout History'!A5:G"] })
+    body: JSON.stringify({ ranges: ["'Earnings Reports'!A5:M", "'Payout History'!A5:G"] })
   });
 
   const updates = [];
-  if (earningRows.length) updates.push({ range: "'Earnings Reports'!A5:L", majorDimension: 'ROWS', values: earningRows });
+  if (earningRows.length) updates.push({ range: "'Earnings Reports'!A5:M", majorDimension: 'ROWS', values: earningRows });
   if (payoutRows.length) updates.push({ range: "'Payout History'!A5:G", majorDimension: 'ROWS', values: payoutRows });
 
   if (updates.length) {
