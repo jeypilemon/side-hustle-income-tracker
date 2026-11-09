@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { authorizeGoogle, prepareGoogleAuth, loadSpreadsheetData, saveSpreadsheetData } from './googleSheets';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -37,6 +37,9 @@ function App() {
   const [cloudConnected, setCloudConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(false);
+  const lastSyncedSignature = useRef(null);
+  const syncInFlight = useRef(false);
   const [earnForm, setEarnForm] = useState({ platform: 'Shopee Affiliate', reportType: 'Weekly', periodStart: today(), periodEnd: today(), paymentReceivedDate: '', paymentStatus: 'Pending', paidAmount: '0', gross: '', tax: '0', adjustments: '0', notes: '' });
   const [payForm, setPayForm] = useState({ platform: 'YouTube', payoutDate: today(), amount: '', reference: '', relatedPeriod: '', notes: '' });
 
@@ -47,19 +50,27 @@ function App() {
 
   useEffect(() => {
     if (!cloudConnected) return;
-    setSyncing(true);
+    const signature = JSON.stringify({ data, deletedIds });
+    if (signature === lastSyncedSignature.current) return;
     const timer = setTimeout(async () => {
+      if (syncInFlight.current) return;
+      syncInFlight.current = true;
+      setSyncing(true);
+      setSyncError(false);
       try {
         const syncedData = await saveSpreadsheetData(data, deletedIds);
-        if (JSON.stringify(syncedData) !== JSON.stringify(data)) {
-          setData(syncedData);
-        }
-        setDeletedIds({ earnings: [], payouts: [] });
+        const hasPendingDeletions = (deletedIds.earnings || []).length > 0 || (deletedIds.payouts || []).length > 0;
+        const emptyDeletions = { earnings: [], payouts: [] };
+        lastSyncedSignature.current = JSON.stringify({ data: syncedData, deletedIds: emptyDeletions });
+        if (JSON.stringify(syncedData) !== JSON.stringify(data)) setData(syncedData);
+        if (hasPendingDeletions) setDeletedIds(emptyDeletions);
         setNotice('Google Sheets synced. Changes and deletions were applied safely.');
       } catch (error) {
-        setNotice('Sync failed: ' + error.message + ' Reconnect your Google account if access expired.');
+        setSyncError(true);
+        setNotice('Sync failed: ' + error.message + ' Your changes remain saved locally. Retry when Google Sheets is available.');
         setCloudConnected(false);
       } finally {
+        syncInFlight.current = false;
         setSyncing(false);
       }
     }, 900);
@@ -108,6 +119,8 @@ function App() {
       };
 
       setData(mergedData);
+      lastSyncedSignature.current = null;
+      setSyncError(false);
       setCloudConnected(true);
       setNotice(
         'Connected safely. Local and Google Sheets records were merged (' +
@@ -115,6 +128,7 @@ function App() {
         ' payouts). A pre-sync recovery snapshot was saved in this browser.'
       );
     } catch (error) {
+      setSyncError(true);
       setNotice('Google connection failed: ' + error.message);
     } finally {
       setConnecting(false);
@@ -250,7 +264,7 @@ function App() {
   function backupJson() { const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='side-hustle-income-backup.json'; a.click(); URL.revokeObjectURL(url); }
   const nav = [['overview','Overview'],['earnings','Earnings'],['payouts','Payouts'],['add-earning','Add earnings'],['add-payout','Add payout'],['settings','Settings']];
   return <div className="app-shell">
-    <aside className="sidebar"><div className="brand"><div className="brand-mark">₱</div><div><strong>Side Hustle</strong><span>Income Tracker</span></div></div><nav>{nav.map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setEditing(null);}}>{label}</button>)}</nav><div className="sidebar-bottom"><span className="local-dot"></span> {cloudConnected ? (syncing ? "Syncing to Google Sheets…" : "Google Sheets connected") : "Local backup active"}</div></aside>
+    <aside className="sidebar"><div className="brand"><div className="brand-mark">₱</div><div><strong>Side Hustle</strong><span>Income Tracker</span></div></div><nav>{nav.map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setEditing(null);}}>{label}</button>)}</nav><div className="sidebar-bottom"><span className={"local-dot" + (syncError ? " error" : connecting || syncing ? " busy" : cloudConnected ? " connected" : "")}></span> {connecting ? "Connecting to Google Sheets…" : syncing ? "Updating Google Sheets…" : syncError ? "Google Sheets sync issue · Local backup active" : cloudConnected ? "Google Sheets connected · Up to date" : "Local backup active"}</div></aside>
     <main className="main"><header className="topbar"><div><p className="eyebrow">PERSONAL FINANCE</p><h1>{nav.find(x=>x[0]===tab)?.[1] || 'Overview'}</h1></div><div className="month-control"><label>Reporting month</label><input type="month" value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)}/></div></header>
       {notice && <div className="notice" onClick={()=>setNotice('')}>{notice} <span>×</span></div>}
       {tab==='overview' && <><section className="welcome"><div><span className="eyebrow light">YOUR CREATOR INCOME</span><h2>Know what you earn.<br/>Track what you receive.</h2><p>Keep commissions and actual payouts separate, with late reports assigned to their earning period.</p></div><div className="goal-ring"><span>MONTHLY GOAL</span><strong>{Math.min(100, data.target ? monthTotal/data.target*100 : 0).toFixed(0)}%</strong><small>{money(monthTotal)} / {money(data.target)}</small></div></section>
