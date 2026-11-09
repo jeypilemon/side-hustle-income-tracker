@@ -140,3 +140,14 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
   .sidebar nav button { font-size: 10px; padding: 7px 8px; }
   .month-control input { width: 120px; max-width: 120px; }
 }
+/* Compact chart legend on phones */
+@media (max-width: 480px) {
+  .recharts-default-legend { display:flex !important; flex-wrap:wrap; justify-content:center; gap:2px 7px; padding:0 2px !important; }
+  .recharts-default-legend li { margin:0 3px !important; padding:0 !important; line-height:1.2 !important; }
+  .recharts-legend-item-text { font-size:8px !important; }
+  .recharts-legend-item .recharts-surface { width:7px !important; height:7px !important; margin-right:3px !important; }
+}
+@media (max-width: 360px) {
+  .recharts-legend-item-text { font-size:7px !important; }
+  .recharts-default-legend li { margin:0 2px !important; }
+}
