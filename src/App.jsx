@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { authorizeGoogle, loadSpreadsheetData, saveSpreadsheetData } from './googleSheets';
+import { authorizeGoogle, prepareGoogleAuth, loadSpreadsheetData, saveSpreadsheetData } from './googleSheets';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const PLATFORMS = ['YouTube', 'TikTok Affiliate', 'Shopee Affiliate', 'Lazada Affiliate', 'Other'];
@@ -37,6 +37,8 @@ function App() {
   const [payForm, setPayForm] = useState({ platform: 'YouTube', payoutDate: today(), amount: '', reference: '', relatedPeriod: '', notes: '' });
 
   useEffect(() => { localStorage.setItem(STORE_KEY, JSON.stringify(data)); }, [data]);
+
+  useEffect(() => { prepareGoogleAuth().catch(error => setNotice('Google sign-in could not initialize: ' + error.message)); }, []);
 
   useEffect(() => {
     if (!cloudConnected) return;
