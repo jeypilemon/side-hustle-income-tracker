@@ -130,7 +130,7 @@ function App() {
   function exportAll() {
     const rows = [['Record Type','ID','Platform','Period Start','Period End','Payment Received Date','Payment Status','Gross','Withholding Tax','Adjustments','Net Commission','Payout Date','Payout Amount','Reference','Related Period','Notes']];
     data.earnings.forEach(x => rows.push(['Earning',x.id,x.platform,x.periodStart,x.periodEnd,x.paymentReceivedDate,x.paymentStatus || (x.paymentReceivedDate ? 'Paid' : 'Pending'),x.gross,x.tax,x.adjustments,x.net,'','','','','',''+(x.notes || '')]));
-    data.payouts.forEach(x => rows.push(['Payout',x.id,x.platform,'','','','','','','',x.payoutDate,x.amount,x.reference,x.relatedPeriod,x.notes]));
+    data.payouts.forEach(x => rows.push(['Payout',x.id,x.platform,'','','','','','','','',x.payoutDate,x.amount,x.reference,x.relatedPeriod,x.notes]));
     downloadCsv('side-hustle-income-backup.csv', rows);
   }
   function importBackup(e) {
