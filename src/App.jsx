@@ -181,7 +181,7 @@ function App() {
     }) }));
     setNotice('Payment status updated.');
   }
-  function editEarning(x) { setEditing({type:'earning',id:x.id}); setEarnForm({ platform:x.platform, reportType:x.reportType, periodStart:x.periodStart, periodEnd:x.periodEnd, paymentReceivedDate:x.paymentReceivedDate||'', paymentStatus:x.paymentStatus || (x.paymentReceivedDate ? 'Paid' : 'Pending'), paidAmount:String(x.paidAmount ?? ((x.paymentStatus === 'Paid' || (!x.paymentStatus && x.paymentReceivedDate)) ? x.net : 0)), gross:String(x.gross), tax:String(x.tax), adjustments:String(x.adjustments), notes:x.notes || '' }); setTab('add-earning'); }
+  function editEarning(x) { setEditing({type:'earning',id:x.id}); setEarnForm({ platform:x.platform, reportType:x.reportType, periodStart:x.periodStart, periodEnd:x.periodEnd, paymentReceivedDate:x.paymentReceivedDate||'', paymentStatus:paymentState(x), paidAmount:String(receivedAmount(x)), gross:String(x.gross), tax:String(x.tax), adjustments:String(x.adjustments), notes:x.notes || '' }); setTab('add-earning'); }
   function editPayout(x) { setEditing({type:'payout',id:x.id}); setPayForm({ platform:x.platform, payoutDate:x.payoutDate, amount:String(x.amount), reference:x.reference || '', relatedPeriod:x.relatedPeriod || '', notes:x.notes || '' }); setTab('add-payout'); }
   function remove(type, id) { if (!confirm('Delete this record? This cannot be undone.')) return; setData(d => ({...d, [type]:d[type].filter(x => x.id !== id)})); }
   function exportAll() {
