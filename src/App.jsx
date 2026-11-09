@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { authorizeGoogle, loadSpreadsheetData, saveSpreadsheetData } from './googleSheets';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const PLATFORMS = ['YouTube', 'TikTok Affiliate', 'Shopee Affiliate', 'Lazada Affiliate', 'Other'];
@@ -29,10 +30,61 @@ function App() {
   const [selectedMonth, setSelectedMonth] = useState(today().slice(0, 7));
   const [editing, setEditing] = useState(null);
   const [notice, setNotice] = useState('');
+  const [cloudConnected, setCloudConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [earnForm, setEarnForm] = useState({ platform: 'Shopee Affiliate', reportType: 'Weekly', periodStart: today(), periodEnd: today(), paymentReceivedDate: '', gross: '', tax: '0', adjustments: '0', notes: '' });
   const [payForm, setPayForm] = useState({ platform: 'YouTube', payoutDate: today(), amount: '', reference: '', relatedPeriod: '', notes: '' });
 
   useEffect(() => { localStorage.setItem(STORE_KEY, JSON.stringify(data)); }, [data]);
+
+  useEffect(() => {
+    if (!cloudConnected) return;
+    setSyncing(true);
+    const timer = setTimeout(async () => {
+      try {
+        await saveSpreadsheetData(data);
+        setNotice('Google Sheets synced successfully.');
+      } catch (error) {
+        setNotice('Sync failed: ' + error.message + ' Reconnect your Google account if access expired.');
+        setCloudConnected(false);
+      } finally {
+        setSyncing(false);
+      }
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [data, cloudConnected]);
+
+  async function connectGoogleSheets() {
+    setConnecting(true);
+    try {
+      await authorizeGoogle();
+      const cloudData = await loadSpreadsheetData();
+      const cloudHasRecords = cloudData.earnings.length > 0 || cloudData.payouts.length > 0;
+      const localHasRecords = data.earnings.length > 0 || data.payouts.length > 0;
+      if (cloudHasRecords) {
+        setData(cloudData);
+        setNotice('Connected. Your Google Sheets records have been loaded.');
+      } else if (localHasRecords) {
+        const migrate = confirm('Your spreadsheet has no earnings or payout records yet. Import the records currently saved in this browser into Google Sheets?');
+        if (migrate) {
+          setCloudConnected(true);
+          setNotice('Local records will be migrated to Google Sheets.');
+        } else {
+          setData(cloudData);
+          setNotice('Connected to an empty spreadsheet. Your local records were not changed.');
+        }
+      } else {
+        setData(cloudData);
+        setNotice('Connected to Google Sheets. You can start entering reports.');
+      }
+      setCloudConnected(true);
+    } catch (error) {
+      setNotice('Google connection failed: ' + error.message);
+    } finally {
+      setConnecting(false);
+    }
+  }
   const year = Number(selectedMonth.slice(0, 4));
   const monthEarnings = data.earnings.filter(x => monthKey(x.periodEnd) === selectedMonth);
   const monthTotal = monthEarnings.reduce((s, x) => s + Number(x.net || 0), 0);
@@ -87,7 +139,7 @@ function App() {
   function backupJson() { const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='side-hustle-income-backup.json'; a.click(); URL.revokeObjectURL(url); }
   const nav = [['overview','Overview'],['earnings','Earnings'],['payouts','Payouts'],['add-earning','Add earnings'],['add-payout','Add payout'],['settings','Settings']];
   return <div className="app-shell">
-    <aside className="sidebar"><div className="brand"><div className="brand-mark">₱</div><div><strong>Side Hustle</strong><span>Income Tracker</span></div></div><nav>{nav.map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setEditing(null);}}>{label}</button>)}</nav><div className="sidebar-bottom"><span className="local-dot"></span> Stored on this device</div></aside>
+    <aside className="sidebar"><div className="brand"><div className="brand-mark">₱</div><div><strong>Side Hustle</strong><span>Income Tracker</span></div></div><nav>{nav.map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setEditing(null);}}>{label}</button>)}</nav><div className="sidebar-bottom"><span className="local-dot"></span> {cloudConnected ? (syncing ? "Syncing to Google Sheets…" : "Google Sheets connected") : "Local backup active"}</div></aside>
     <main className="main"><header className="topbar"><div><p className="eyebrow">PERSONAL FINANCE</p><h1>{nav.find(x=>x[0]===tab)?.[1] || 'Overview'}</h1></div><div className="month-control"><label>Reporting month</label><input type="month" value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)}/></div></header>
       {notice && <div className="notice" onClick={()=>setNotice('')}>{notice} <span>×</span></div>}
       {tab==='overview' && <><section className="welcome"><div><span className="eyebrow light">YOUR CREATOR INCOME</span><h2>Know what you earn.<br/>Track what you receive.</h2><p>Keep commissions and actual payouts separate, with late reports assigned to their earning period.</p></div><div className="goal-ring"><span>MONTHLY GOAL</span><strong>{Math.min(100, data.target ? monthTotal/data.target*100 : 0).toFixed(0)}%</strong><small>{money(monthTotal)} / {money(data.target)}</small></div></section>
@@ -98,8 +150,8 @@ function App() {
       {tab==='payouts' && <section className="panel"><div className="panel-head"><div><h3>Payout history</h3><p>Record deposits separately to avoid counting them as new earnings.</p></div><button className="primary small" onClick={()=>{setEditing(null);setTab('add-payout')}}>＋ Add payout</button></div><div className="table-wrap"><table><thead><tr><th>Platform</th><th>Payout date</th><th>Amount received</th><th>Reference</th><th>Related period</th><th></th></tr></thead><tbody>{data.payouts.map(x=><tr key={x.id}><td><Badge>{x.platform}</Badge></td><td>{x.payoutDate}</td><td className="strong">{money(x.amount)}</td><td>{x.reference||'—'}</td><td>{x.relatedPeriod||'—'}</td><td><button className="icon-btn" onClick={()=>editPayout(x)}>Edit</button><button className="icon-btn danger" onClick={()=>remove('payouts',x.id)}>Delete</button></td></tr>)}{!data.payouts.length&&<Empty col={6} text="No payouts recorded yet."/ >}</tbody></table></div></section>}
       {tab==='add-earning' && <section className="panel form-panel"><div className="panel-head"><div><h3>{editing?'Edit earnings report':'Add earnings report'}</h3><p>Use the platform's actual reporting dates, even if you're entering the report late.</p></div></div><form onSubmit={saveEarning} className="form-grid"><Field label="Platform"><select value={earnForm.platform} onChange={e=>setEarnForm({...earnForm,platform:e.target.value})}>{PLATFORMS.map(p=><option key={p}>{p}</option>)}</select></Field><Field label="Report type"><select value={earnForm.reportType} onChange={e=>setEarnForm({...earnForm,reportType:e.target.value})}><option>Weekly</option><option>Monthly</option><option>Custom</option></select></Field><Field label="Period start"><input type="date" required value={earnForm.periodStart} onChange={e=>setEarnForm({...earnForm,periodStart:e.target.value})}/></Field><Field label="Period end"><input type="date" required value={earnForm.periodEnd} onChange={e=>setEarnForm({...earnForm,periodEnd:e.target.value})}/></Field><Field label="Payment received in bank (optional)"><input type="date" value={earnForm.paymentReceivedDate} onChange={e=>setEarnForm({...earnForm,paymentReceivedDate:e.target.value})}/></Field><Field label="Gross commission (₱)"><input type="number" min="0" step="0.01" required value={earnForm.gross} onChange={e=>setEarnForm({...earnForm,gross:e.target.value})}/></Field><Field label="Withholding tax (₱)"><input type="number" min="0" step="0.01" value={earnForm.tax} onChange={e=>setEarnForm({...earnForm,tax:e.target.value})}/></Field><Field label="Adjustments (₱)"><input type="number" step="0.01" value={earnForm.adjustments} onChange={e=>setEarnForm({...earnForm,adjustments:e.target.value})}/></Field><Field label="Net commission (calculated)"><div className="calculated">{money(Number(earnForm.gross||0)-Number(earnForm.tax||0)+Number(earnForm.adjustments||0))}</div></Field><Field label="Notes / report reference" wide><input value={earnForm.notes} onChange={e=>setEarnForm({...earnForm,notes:e.target.value})} placeholder="Optional reference or notes"/></Field><div className="form-actions"><button type="button" className="secondary" onClick={()=>{setEditing(null);setTab('earnings')}}>Cancel</button><button className="primary">{editing?'Save changes':'Save earnings report'}</button></div></form></section>}
       {tab==='add-payout' && <section className="panel form-panel"><div className="panel-head"><div><h3>{editing?'Edit payout':'Record a payout'}</h3><p>Enter the date the money actually reached your account.</p></div></div><form onSubmit={savePayout} className="form-grid"><Field label="Platform"><select value={payForm.platform} onChange={e=>setPayForm({...payForm,platform:e.target.value})}>{PLATFORMS.map(p=><option key={p}>{p}</option>)}</select></Field><Field label="Payout date"><input type="date" required value={payForm.payoutDate} onChange={e=>setPayForm({...payForm,payoutDate:e.target.value})}/></Field><Field label="Amount received (₱)"><input type="number" min="0.01" step="0.01" required value={payForm.amount} onChange={e=>setPayForm({...payForm,amount:e.target.value})}/></Field><Field label="Transaction reference"><input value={payForm.reference} onChange={e=>setPayForm({...payForm,reference:e.target.value})}/></Field><Field label="Related earnings period (optional)"><input placeholder="e.g. 2026-10-01 to 2026-10-31" value={payForm.relatedPeriod} onChange={e=>setPayForm({...payForm,relatedPeriod:e.target.value})}/></Field><Field label="Notes"><input value={payForm.notes} onChange={e=>setPayForm({...payForm,notes:e.target.value})}/></Field><div className="form-actions"><button type="button" className="secondary" onClick={()=>{setEditing(null);setTab('payouts')}}>Cancel</button><button className="primary">{editing?'Save changes':'Save payout'}</button></div></form></section>}
-      {tab==='settings' && <section className="panel form-panel"><div className="panel-head"><div><h3>Settings & data</h3><p>Your records are stored in this browser using local storage.</p></div></div><div className="settings-block"><label>Monthly earnings target (₱)</label><input type="number" min="0" value={data.target} onChange={e=>setData(d=>({...d,target:Number(e.target.value)}))}/><p className="muted">Used for the monthly goal indicator on the Overview page.</p></div><div className="settings-block"><h4>Backup & restore</h4><p className="muted">Export a JSON backup regularly. CSV export is useful for spreadsheets and bookkeeping.</p><div className="button-row"><button className="primary" onClick={backupJson}>Download JSON backup</button><button className="secondary" onClick={exportAll}>Export CSV</button><label className="secondary file-label">Restore JSON backup<input type="file" accept="application/json,.json" onChange={importBackup}/></label></div></div><div className="warning-box"><strong>Important</strong><p>This version stores data in the current browser on this device. Clearing browser storage can erase your records. Keep JSON backups somewhere safe. Cross-device sync and live Google Sheets integration are not enabled yet.</p></div><div className="settings-block"><h4>Data totals</h4><p>{data.earnings.length} earnings reports · {data.payouts.length} payouts · {money(data.earnings.reduce((s,x)=>s+Number(x.net||0),0))} lifetime net commission</p></div></section>}
-      <footer>Side Hustle Income Tracker <span>•</span> Local-first · PHP currency</footer>
+      {tab==='settings' && <section className="panel form-panel"><div className="panel-head"><div><h3>Settings & data</h3><p>{cloudConnected ? "Google Sheets is your connected storage." : "Connect Google Sheets for persistent, cross-device storage."}</p></div><button className="primary" onClick={connectGoogleSheets} disabled={connecting}>{connecting ? "Connecting…" : cloudConnected ? "Reconnect Google Sheets" : "Connect Google Sheets"}</button></div><div className="settings-block"><label>Monthly earnings target (₱)</label><input type="number" min="0" value={data.target} onChange={e=>setData(d=>({...d,target:Number(e.target.value)}))}/><p className="muted">Used for the monthly goal indicator on the Overview page.</p></div><div className="settings-block"><h4>Backup & restore</h4><p className="muted">Export a JSON backup regularly. CSV export is useful for spreadsheets and bookkeeping.</p><div className="button-row"><button className="primary" onClick={backupJson}>Download JSON backup</button><button className="secondary" onClick={exportAll}>Export CSV</button><label className="secondary file-label">Restore JSON backup<input type="file" accept="application/json,.json" onChange={importBackup}/></label></div></div><div className="warning-box"><strong>{cloudConnected ? "Google Sheets storage enabled" : "Before connecting"}</strong><p>{cloudConnected ? "Your records are synced to your private Google spreadsheet. Keep your JSON backup as an additional recovery copy. Google access may need to be renewed when the access token expires." : "Until you connect Google Sheets, records are stored only in this browser. Download a JSON backup before connecting if you have existing records."}</p></div><div className="settings-block"><h4>Data totals</h4><p>{data.earnings.length} earnings reports · {data.payouts.length} payouts · {money(data.earnings.reduce((s,x)=>s+Number(x.net||0),0))} lifetime net commission</p></div></section>}
+      <footer>Side Hustle Income Tracker <span>•</span> {cloudConnected ? "Google Sheets storage · PHP currency" : "Local backup · PHP currency"}</footer>
     </main>
   </div>;
 }
