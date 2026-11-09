@@ -101,6 +101,7 @@ const dateString = value => {
 };
 
 export async function loadSpreadsheetData() {
+  await putValues("'Earnings Reports'!E4", [['Payment Received Date']]);
   await putValues("'Earnings Reports'!L4:M4", [['Payment Status', 'Amount Received']]);
   const [earningRows, payoutRows, settingRows] = await Promise.all([
     getValues("'Earnings Reports'!A5:M"),
@@ -119,7 +120,8 @@ export async function loadSpreadsheetData() {
       periodStart: dateString(row[2]), periodEnd: dateString(row[3]),
       paymentReceivedDate: dateString(row[4]), gross: Number(row[5]) || 0,
       tax: Number(row[6]) || 0, adjustments: Number(row[7]) || 0,
-      net: Number(row[8]) || 0, notes: String(row[9] || ''), paymentStatus: String(row[11] || (row[4] ? 'Paid' : 'Pending')), paidAmount: Number(row[12]) || ((row[11] === 'Paid' || (!row[11] && row[4])) ? Number(row[8]) || 0 : 0)
+      net: Number(row[8]) || 0, notes: String(row[9] || ''), paymentStatus: String(row[11] || (row[4] ? 'Paid' : 'Pending')),
+      paidAmount: row[12] !== undefined && row[12] !== '' ? Math.max(0, Number(row[12]) || 0) : ((row[11] === 'Paid' || (!row[11] && row[4])) ? Number(row[8]) || 0 : 0)
     });
   });
 
@@ -164,11 +166,14 @@ export async function saveSpreadsheetData(data) {
     x.relatedPeriod || '', x.notes || '', x.id || makeId()
   ]);
 
-  // These are dedicated data-table areas. Headers, formatting, filters and other tabs are untouched.
-  await api('/values:batchClear', {
-    method: 'POST',
-    body: JSON.stringify({ ranges: ["'Earnings Reports'!A5:M", "'Payout History'!A5:G"] })
-  });
+  // Read existing table lengths so sync only touches populated data rows.
+  // Never clear open-ended column ranges: that can erase formulas or unrelated content.
+  const [existingEarnings, existingPayouts] = await Promise.all([
+    getValues("'Earnings Reports'!A5:M"),
+    getValues("'Payout History'!A5:G")
+  ]);
+  const existingEarningCount = existingEarnings.filter(row => row.some(value => value !== '' && value !== null && value !== undefined)).length;
+  const existingPayoutCount = existingPayouts.filter(row => row.some(value => value !== '' && value !== null && value !== undefined)).length;
 
   const updates = [];
   if (earningRows.length) updates.push({ range: "'Earnings Reports'!A5:M", majorDimension: 'ROWS', values: earningRows });
@@ -178,6 +183,20 @@ export async function saveSpreadsheetData(data) {
     await api('/values:batchUpdate', {
       method: 'POST',
       body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data: updates })
+    });
+  }
+
+  const clears = [];
+  if (existingEarningCount > earningRows.length) {
+    clears.push("'Earnings Reports'!A" + (5 + earningRows.length) + ":M" + (4 + existingEarningCount));
+  }
+  if (existingPayoutCount > payoutRows.length) {
+    clears.push("'Payout History'!A" + (5 + payoutRows.length) + ":G" + (4 + existingPayoutCount));
+  }
+  if (clears.length) {
+    await api('/values:batchClear', {
+      method: 'POST',
+      body: JSON.stringify({ ranges: clears })
     });
   }
 
