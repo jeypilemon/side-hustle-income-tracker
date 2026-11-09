@@ -174,34 +174,27 @@ export async function saveSpreadsheetData(data) {
   const payoutFields = [
     'platform', 'payoutDate', 'amount', 'reference', 'relatedPeriod', 'notes'
   ];
-  const normalized = (row, keys) => JSON.stringify(
-    Object.fromEntries(keys.map(key => [key, row[key] ?? (['gross','tax','adjustments','net','paidAmount','amount'].includes(key) ? 0 : '')]))
-  );
-  const mergeRecords = (cloudRows, localRows, keys, label) => {
-    const cloudById = new Map(cloudRows.map(row => [String(row.id), row]));
-    const localById = new Map(localRows.map(row => [String(row.id), row]));
-    const conflicts = [];
-    for (const [id, local] of localById) {
-      const remote = cloudById.get(id);
-      if (remote && normalized(remote, keys) !== normalized(local, keys)) {
-        conflicts.push(label + ' ID ' + id);
-      }
-    }
-    if (conflicts.length) {
-      throw new Error(
-        'Sync paused to protect your data. These records differ between this browser and Google Sheets: ' +
-        conflicts.slice(0, 5).join(', ') +
-        (conflicts.length > 5 ? ' and ' + (conflicts.length - 5) + ' more' : '') +
-        '. No spreadsheet records were changed. Keep both copies and resolve the differences before syncing again.'
-      );
-    }
-    const merged = new Map(cloudById);
-    for (const [id, local] of localById) if (!merged.has(id)) merged.set(id, local);
+  const mergeRecords = (cloudRows, localRows) => {
+    // Deterministic merge: retain every cloud-only row, add local-only rows,
+    // and let the active browser's version win for matching IDs. This avoids
+    // blocking the user with sync conflicts while retaining a pre-write backup.
+    const merged = new Map(cloudRows.map(row => [String(row.id), row]));
+    for (const row of localRows) merged.set(String(row.id), row);
     return [...merged.values()];
   };
 
-  const mergedEarnings = mergeRecords(cloud.earnings, data.earnings, fields, 'Earnings');
-  const mergedPayouts = mergeRecords(cloud.payouts, data.payouts, payoutFields, 'Payout');
+  const mergedEarnings = mergeRecords(cloud.earnings, data.earnings);
+  const mergedPayouts = mergeRecords(cloud.payouts, data.payouts);
+  // Save a recovery point containing both sides before writing to Sheets.
+  try {
+    localStorage.setItem(
+      'side-hustle-income-tracker-pre-sync-' + Date.now(),
+      JSON.stringify({ savedAt: new Date().toISOString(), local: data, cloud })
+    );
+  } catch (error) {
+    throw new Error('Could not create a pre-sync backup; sync was cancelled. ' + error.message);
+  }
+
   const earningRows = mergedEarnings.map(x => [
     x.platform, x.reportType, x.periodStart, x.periodEnd,
     x.paymentReceivedDate || '', Number(x.gross) || 0, Number(x.tax) || 0,
