@@ -71,8 +71,8 @@ function App() {
           setCloudConnected(true);
           setNotice('Local records will be migrated to Google Sheets.');
         } else {
-          setData(cloudData);
-          setNotice('Connected to an empty spreadsheet. Your local records were not changed.');
+          setNotice('Migration cancelled. Your local records remain in this browser; Google Sheets was not connected.');
+          return;
         }
       } else {
         setData(cloudData);
