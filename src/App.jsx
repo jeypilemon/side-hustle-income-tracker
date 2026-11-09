@@ -47,8 +47,11 @@ function App() {
     setSyncing(true);
     const timer = setTimeout(async () => {
       try {
-        await saveSpreadsheetData(data);
-        setNotice('Google Sheets synced successfully.');
+        const syncedData = await saveSpreadsheetData(data);
+        if (JSON.stringify(syncedData) !== JSON.stringify(data)) {
+          setData(syncedData);
+        }
+        setNotice('Google Sheets synced safely. Cloud-only records were preserved.');
       } catch (error) {
         setNotice('Sync failed: ' + error.message + ' Reconnect your Google account if access expired.');
         setCloudConnected(false);
