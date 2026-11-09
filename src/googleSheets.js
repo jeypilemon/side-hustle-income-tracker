@@ -38,7 +38,14 @@ export function prepareGoogleAuth() {
           accessToken = response.access_token;
           pendingResolve?.();
         },
-        error_callback: error => pendingReject?.(new Error(error.message || 'Google authorization failed.'))
+        error_callback: error => {
+          const message = error.type === 'popup_failed_to_open'
+            ? 'This browser blocked the Google sign-in window. On mobile, allow pop-ups for this site or connect Google Sheets once from a desktop browser, then retry on mobile.'
+            : error.type === 'popup_closed'
+              ? 'Google sign-in was closed before authorization finished. Please try again.'
+              : 'Google authorization failed' + (error.type ? ': ' + error.type : '.') ;
+          pendingReject?.(new Error(message));
+        }
       });
     }
   });
