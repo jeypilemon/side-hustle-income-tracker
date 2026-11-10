@@ -107,13 +107,23 @@ const dateString = value => {
   return String(value).slice(0, 10);
 };
 
+async function ensureRepairSheet() {
+  try { return await getValues("'Repair Jobs'!A4:N"); }
+  catch (error) {
+    const body = await api(':batchUpdate', { method:'POST', body:JSON.stringify({requests:[{addSheet:{properties:{title:'Repair Jobs'}}}]}) });
+    await putValues("'Repair Jobs'!A1:N1", [['ID','Service Date','Service Type','Device / Model','Customer','Labor Charge','Parts Cost','Other Costs','Amount Charged','Net Profit','Payment Status','Payment Received Date','Notes','Reserved']]);
+    return [];
+  }
+}
+
 export async function loadSpreadsheetData() {
   await putValues("'Earnings Reports'!E4", [['Payment Received Date']]);
   await putValues("'Earnings Reports'!L4:M4", [['Payment Status', 'Amount Received']]);
-  const [earningRows, payoutRows, settingRows] = await Promise.all([
+  const [earningRows, payoutRows, settingRows, repairRows] = await Promise.all([
     getValues("'Earnings Reports'!A5:M"),
     getValues("'Payout History'!A5:G"),
-    getValues("'Settings'!A1:C100")
+    getValues("'Settings'!A1:C100"),
+    ensureRepairSheet()
   ]);
 
   const earnings = [];
@@ -155,11 +165,13 @@ export async function loadSpreadsheetData() {
     await putValues(`'Payout History'!G${item.row}`, [[item.id]]);
   }
 
+  const repairs = repairRows.slice(1).filter(row => row[0]).map(row => ({ id:String(row[0]), serviceDate:dateString(row[1]), serviceType:String(row[2]||''), device:String(row[3]||''), customer:String(row[4]||''), labor:Number(row[5])||0, partsCost:Number(row[6])||0, otherCosts:Number(row[7])||0, amountCharged:Number(row[8])||0, netProfit:Number(row[9])||0, paymentStatus:String(row[10]||'Paid'), paymentReceivedDate:dateString(row[11]), notes:String(row[12]||'') }));
+
   let target = 10000;
   const targetRow = settingRows.find(row => String(row[0] || '').trim() === 'Monthly income target');
   if (targetRow) target = Number(targetRow[1]) || 10000;
 
-  return { earnings, payouts, target, _syncMeta: { earningRows: earningRows.length, payoutRows: payoutRows.length, targetRow: targetRow ? settingRows.indexOf(targetRow) + 1 : null } };
+  return { earnings, payouts, repairs, target, _syncMeta: { earningRows: earningRows.length, payoutRows: payoutRows.length, repairRows: Math.max(0, repairRows.length - 1), targetRow: targetRow ? settingRows.indexOf(targetRow) + 1 : null } };
 }
 
 export async function saveSpreadsheetData(data, deletedIds = { earnings: [], payouts: [] }) {
@@ -177,12 +189,16 @@ export async function saveSpreadsheetData(data, deletedIds = { earnings: [], pay
 
   const deletedEarnings = new Set((deletedIds.earnings || []).map(String));
   const deletedPayouts = new Set((deletedIds.payouts || []).map(String));
+  const deletedRepairs = new Set((deletedIds.repairs || []).map(String));
   const cloudEarnings = cloud.earnings.filter(row => !deletedEarnings.has(String(row.id)));
   const cloudPayouts = cloud.payouts.filter(row => !deletedPayouts.has(String(row.id)));
   const localEarnings = data.earnings.filter(row => !deletedEarnings.has(String(row.id)));
   const localPayouts = data.payouts.filter(row => !deletedPayouts.has(String(row.id)));
   const mergedEarnings = mergeRecords(cloudEarnings, localEarnings);
   const mergedPayouts = mergeRecords(cloudPayouts, localPayouts);
+  const cloudRepairs = (cloud.repairs || []).filter(row => !deletedRepairs.has(String(row.id)));
+  const localRepairs = (data.repairs || []).filter(row => !deletedRepairs.has(String(row.id)));
+  const mergedRepairs = mergeRecords(cloudRepairs, localRepairs);
   // Save a recovery point containing both sides before writing to Sheets.
   try {
     localStorage.setItem(
@@ -203,10 +219,12 @@ export async function saveSpreadsheetData(data, deletedIds = { earnings: [], pay
     x.platform, x.payoutDate, Number(x.amount) || 0, x.reference || '',
     x.relatedPeriod || '', x.notes || '', x.id
   ]);
+  const repairRows = mergedRepairs.map(x => [x.id, x.serviceDate || '', x.serviceType || '', x.device || '', x.customer || '', Number(x.labor)||0, Number(x.partsCost)||0, Number(x.otherCosts)||0, Number(x.amountCharged)||0, Number(x.netProfit ?? (Number(x.amountCharged||0)-Number(x.partsCost||0)-Number(x.otherCosts||0)))||0, x.paymentStatus || 'Paid', x.paymentReceivedDate || '', x.notes || '', '']);
 
   const updates = [];
   if (earningRows.length) updates.push({ range: "'Earnings Reports'!A5:M", majorDimension: 'ROWS', values: earningRows });
   if (payoutRows.length) updates.push({ range: "'Payout History'!A5:G", majorDimension: 'ROWS', values: payoutRows });
+  if (repairRows.length) updates.push({ range: "'Repair Jobs'!A2:N", majorDimension: 'ROWS', values: repairRows });
   if (updates.length) {
     await api('/values:batchUpdate', {
       method: 'POST',
@@ -220,6 +238,8 @@ export async function saveSpreadsheetData(data, deletedIds = { earnings: [], pay
   const clears = [];
   if (existingEarningCount > earningRows.length) clears.push("'Earnings Reports'!A" + (5 + earningRows.length) + ":M" + (4 + existingEarningCount));
   if (existingPayoutCount > payoutRows.length) clears.push("'Payout History'!A" + (5 + payoutRows.length) + ":G" + (4 + existingPayoutCount));
+  const existingRepairCount = cloud._syncMeta?.repairRows || 0;
+  if (existingRepairCount > repairRows.length) clears.push("'Repair Jobs'!A" + (2 + repairRows.length) + ":N" + (1 + existingRepairCount));
   if (clears.length) await api('/values:batchClear', { method: 'POST', body: JSON.stringify({ ranges: clears }) });
 
   const targetIndex = cloud._syncMeta?.targetRow;
@@ -229,6 +249,7 @@ export async function saveSpreadsheetData(data, deletedIds = { earnings: [], pay
   return {
     earnings: mergedEarnings,
     payouts: mergedPayouts,
+    repairs: mergedRepairs,
     target: Number(data.target) || Number(cloud.target) || 10000
   };
 }
