@@ -108,7 +108,7 @@ const dateString = value => {
 };
 
 async function ensureRepairSheet() {
-  try { return await getValues("'Repair Jobs'!A4:N"); }
+  try { return await getValues("'Repair Jobs'!A1:N"); }
   catch (error) {
     const body = await api(':batchUpdate', { method:'POST', body:JSON.stringify({requests:[{addSheet:{properties:{title:'Repair Jobs'}}}]}) });
     await putValues("'Repair Jobs'!A1:N1", [['ID','Service Date','Service Type','Device / Model','Customer','Labor Charge','Parts Cost','Other Costs','Amount Charged','Net Profit','Payment Status','Payment Received Date','Notes','Reserved']]);
