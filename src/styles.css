@@ -151,3 +151,6 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
   .recharts-legend-item-text { font-size:7px !important; }
   .recharts-default-legend li { margin:0 2px !important; }
 }
+/* Repair income module */
+.repair-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media(max-width:480px){.repair-summary{grid-template-columns:1fr 1fr}}
