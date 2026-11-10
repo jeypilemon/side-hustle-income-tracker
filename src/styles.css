@@ -180,3 +180,15 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 .combined-income-breakdown span{font-size:10px;color:#62718b}
 .combined-income-breakdown b{font:700 13px Manrope;color:#293e67;white-space:nowrap}
 @media(max-width:700px){.combined-income-card{grid-template-columns:1fr;gap:13px;padding:16px;margin-bottom:12px}.combined-income-main strong{font-size:24px}.combined-income-breakdown{padding:11px 0 0;border-left:0;border-top:1px solid #cbd5e8;gap:8px}.combined-income-breakdown span{font-size:9px}.combined-income-breakdown b{font-size:11px}}
+
+/* Compact repair job counts by service category */
+.repair-category-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.repair-category-count{display:flex;flex-direction:column;gap:5px;min-width:0;padding:12px 15px;border:1px solid;border-radius:11px}
+.repair-category-count span{font-size:11px;font-weight:700}
+.repair-category-count strong{font:800 23px Manrope;line-height:1.2}
+.repair-category-count small{font-size:9px;opacity:.75}
+.repair-category-count.phone-repair{background:#edf3ff;border-color:#d9e5ff;color:#3157b8}
+.repair-category-count.laptop-repair{background:#f3edff;border-color:#e5d9fc;color:#7047a8}
+.repair-category-count.computer-repair{background:#e9f7f4;border-color:#ccece4;color:#187d70}
+.repair-category-count.other-repair{background:#fff4e6;border-color:#f5e1c6;color:#a76518}
+@media(max-width:700px){.repair-category-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}.repair-category-count{padding:11px 12px}.repair-category-count strong{font-size:21px}}
