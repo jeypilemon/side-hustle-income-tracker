@@ -168,3 +168,15 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 .repair-result-count{font-size:10px;color:#8995a6;margin:10px 2px 0}
 .trend-tooltip{background:#fff;border:1px solid #e2e7ef;border-radius:9px;padding:10px 12px;box-shadow:0 4px 16px #17223818;font-size:10px;min-width:165px}.trend-tooltip>strong{display:block;margin-bottom:7px;color:#1c2b43}.trend-tooltip>div{display:flex;justify-content:space-between;gap:16px;padding:2px 0;color:#65738a}.trend-tooltip b{color:#263751}
 @media(max-width:700px){.repair-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.repair-stat{padding:12px 10px}.repair-stat strong{font-size:15px}.repair-toolbar input{flex-basis:100%;min-height:44px;font-size:14px}.repair-toolbar select{flex:1;min-height:42px;font-size:12px}.repair-toolbar button{min-height:42px}}
+
+/* Combined lifetime income highlight */
+.combined-income-card{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr);gap:22px;align-items:center;padding:20px 24px;margin:0 0 16px;border:1px solid #c9d8f4;border-radius:14px;background:linear-gradient(115deg,#eaf1ff 0%,#f2edff 52%,#e8f7f3 100%);box-shadow:0 5px 18px #294b8510}
+.combined-income-main{display:flex;flex-direction:column;gap:5px}
+.combined-income-label{font-size:10px;font-weight:800;letter-spacing:1.25px;color:#5269a8}
+.combined-income-main strong{font:800 29px Manrope;color:#253e78;letter-spacing:-.6px;overflow-wrap:anywhere}
+.combined-income-main small{font-size:10px;color:#7483a0}
+.combined-income-breakdown{display:grid;gap:9px;padding-left:20px;border-left:1px solid #cbd5e8}
+.combined-income-breakdown div{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.combined-income-breakdown span{font-size:10px;color:#62718b}
+.combined-income-breakdown b{font:700 13px Manrope;color:#293e67;white-space:nowrap}
+@media(max-width:700px){.combined-income-card{grid-template-columns:1fr;gap:13px;padding:16px;margin-bottom:12px}.combined-income-main strong{font-size:24px}.combined-income-breakdown{padding:11px 0 0;border-left:0;border-top:1px solid #cbd5e8;gap:8px}.combined-income-breakdown span{font-size:9px}.combined-income-breakdown b{font-size:11px}}
