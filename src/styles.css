@@ -192,3 +192,88 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 .repair-category-count.computer-repair{background:#e9f7f4;border-color:#ccece4;color:#187d70}
 .repair-category-count.other-repair{background:#fff4e6;border-color:#f5e1c6;color:#a76518}
 @media(max-width:700px){.repair-category-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}.repair-category-count{padding:11px 12px}.repair-category-count strong{font-size:21px}}
+
+
+/* Overview follow-ups, utility controls, and task list */
+.header-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.clock-chip{display:grid;gap:1px;text-align:right;padding:0 7px;color:#77849a}
+.clock-chip strong{font-size:12px;color:#31405a}
+.clock-chip span{font-size:9px}
+.nav-count{display:inline-grid;place-items:center;min-width:19px;height:19px;padding:0 5px;margin-left:7px;border-radius:99px;background:#3157d5;color:#fff;font-size:10px;font-weight:700}
+.overview-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start}
+.overview-main{min-width:0;display:grid;gap:0}
+.pending-repairs-panel{position:sticky;top:22px;background:#fff;border:1px solid #e8ecf2;border-radius:13px;padding:17px;box-shadow:0 3px 12px #1e2a3d06}
+.pending-repairs-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px}
+.pending-repairs-head h3{font:700 15px Manrope;margin:0;color:#1c2b43}
+.pending-repairs-head p{font-size:10px;color:#8a96a8;margin:5px 0 0}
+.pending-repair-item{width:100%;display:grid;gap:4px;text-align:left;padding:12px 2px;border:0;border-top:1px solid #edf0f4;background:transparent;color:inherit;cursor:pointer}
+.pending-repair-item:hover strong{color:#3157d5}
+.pending-repair-date,.pending-repair-item small{font-size:10px;color:#8793a5}
+.pending-repair-item strong{font-size:12px;color:#263751}
+.pending-add-btn{width:100%;margin-top:10px}
+.empty-note{font-size:12px;color:#8b97a8;line-height:1.6;padding:12px 2px}
+.task-entry{display:grid;grid-template-columns:minmax(0,1fr) 170px auto;gap:9px;margin-bottom:15px}
+.task-entry input,.field textarea{font:inherit;border:1px solid #dfe4ed;border-radius:8px;padding:11px 12px;background:#fff;color:#24334a}
+.task-list{display:grid}
+.task-row{display:grid;grid-template-columns:minmax(0,1fr) 130px auto;align-items:center;gap:10px;padding:13px 2px;border-top:1px solid #edf0f4}
+.task-row label{display:flex;gap:9px;align-items:center;min-width:0;font-size:13px}
+.task-row label span{overflow-wrap:anywhere}
+.task-row input{accent-color:#3157d5}
+.task-row small{font-size:10px;color:#8793a5}
+.task-row.is-done label span{text-decoration:line-through;color:#9aa4b3}
+.job-status{display:inline-block;padding:5px 8px;border-radius:999px;background:#e8f5fb;color:#24708e;font-size:10px;font-weight:700;white-space:nowrap}
+.job-status.pending{background:#fff2d9;color:#976518}
+.job-status.completed{background:#e9f7ef;color:#277548}
+.repair-modal{width:min(760px,calc(100vw - 28px));max-height:calc(100vh - 28px);overflow:auto;background:#fff;color:#26334a;border-radius:16px;padding:22px;box-shadow:0 20px 70px #07132855}
+.modal-backdrop{position:fixed;inset:0;z-index:1000;background:#0b1424a8;display:grid;place-items:center;padding:14px}
+.modal-toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;margin-bottom:16px}
+.modal-toolbar h2{font:800 21px Manrope;margin:0;color:#172238}
+.repair-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px 18px;margin-bottom:18px}
+.repair-detail-grid>div{display:grid;gap:4px;min-width:0}
+.repair-detail-grid span{font-size:10px;color:#8793a5}
+.repair-detail-grid strong{font-size:12px;color:#263751;overflow-wrap:anywhere;white-space:pre-wrap}
+.repair-detail-grid .detail-wide{grid-column:1/-1}
+.receipt-print-area{border:1px solid #dfe4ed;border-radius:10px;padding:18px;background:#fff;color:#202b3c}
+.receipt-heading{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #172847;padding-bottom:12px;margin-bottom:14px}
+.receipt-heading div{display:grid;gap:4px}
+.receipt-heading strong{font:800 20px Manrope}
+.receipt-heading span,.receipt-heading small{font-size:11px;color:#66748a}
+.receipt-client,.receipt-service{display:grid;gap:4px;margin:0 0 13px;font-size:12px}
+.receipt-client b,.receipt-service b{font-size:10px;color:#78869b;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.receipt-print-area table{margin-top:8px}
+.receipt-print-area th,.receipt-print-area td{padding:9px 4px}
+.receipt-print-area th:last-child,.receipt-print-area td:last-child{text-align:right}
+.receipt-total td{font-weight:800;border-top:1px solid #cbd5e1}
+.receipt-payment{font-size:11px;color:#66748a;margin:12px 0 0}
+.modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:16px}
+@media(max-width:1120px){.overview-layout{grid-template-columns:minmax(0,1fr) 245px;gap:12px}.header-tools{gap:5px}}
+@media(max-width:850px){.overview-layout{grid-template-columns:1fr}.pending-repairs-panel{position:static}.header-tools{justify-content:flex-start}.topbar{flex-wrap:wrap}.clock-chip{text-align:left}}
+@media(max-width:600px){.task-entry{grid-template-columns:1fr 1fr}.task-entry input:first-child{grid-column:1/-1}.task-entry button{grid-column:1/-1}.task-row{grid-template-columns:minmax(0,1fr) auto;gap:6px}.task-row small{grid-column:1}.task-row .icon-btn{grid-column:2;grid-row:1/3}.repair-detail-grid{grid-template-columns:1fr 1fr}.repair-modal{padding:16px}.header-tools .month-control{width:100%}}
+
+/* Dark appearance */
+html[data-theme="dark"] body{background:#0b1220;color:#e4eaf5}
+html[data-theme="dark"] .main{color:#e4eaf5}
+html[data-theme="dark"] .sidebar{background:#070c16}
+html[data-theme="dark"] .sidebar nav button:hover,html[data-theme="dark"] .sidebar nav button.active{background:#1a2942}
+html[data-theme="dark"] .topbar h1,html[data-theme="dark"] .pending-repairs-head h3,html[data-theme="dark"] .pending-repair-item strong{color:#e8eef8}
+html[data-theme="dark"] .pending-repairs-panel,html[data-theme="dark"] .panel,html[data-theme="dark"] .kpi,html[data-theme="dark"] .platform-card,html[data-theme="dark"] .repair-stat,html[data-theme="dark"] .combined-income-card{background:#121d2e;border-color:#24334a;color:#dbe5f5;box-shadow:none}
+html[data-theme="dark"] .combined-income-breakdown{border-color:#34445e}
+html[data-theme="dark"] .combined-income-main strong,html[data-theme="dark"] .combined-income-breakdown b,html[data-theme="dark"] .kpi strong,html[data-theme="dark"] .panel-head h3,html[data-theme="dark"] .settings-block h4{color:#edf3fc}
+html[data-theme="dark"] .pending-repair-item{border-color:#29384d}
+html[data-theme="dark"] .pending-repair-item:hover strong{color:#69bfff}
+html[data-theme="dark"] .table-wrap table{color:#dce6f5}
+html[data-theme="dark"] th{color:#a8b7cd;border-color:#34445b}
+html[data-theme="dark"] td{color:#c0cce0;border-color:#26364c}
+html[data-theme="dark"] .strong{color:#eff5ff}
+html[data-theme="dark"] .task-entry input,html[data-theme="dark"] .field input,html[data-theme="dark"] .field select,html[data-theme="dark"] .field textarea,html[data-theme="dark"] .settings-block input,html[data-theme="dark"] .month-control input,html[data-theme="dark"] .repair-toolbar input,html[data-theme="dark"] .repair-toolbar select{background:#0d1726;border-color:#35465e;color:#e4eaf5}
+html[data-theme="dark"] .secondary{background:#25344a;color:#dbe5f5}
+html[data-theme="dark"] .clock-chip strong{color:#dbe5f5}
+html[data-theme="dark"] .clock-chip,html[data-theme="dark"] .muted,html[data-theme="dark"] .empty-note{color:#9aabc2}
+html[data-theme="dark"] .task-row{border-color:#29384d}
+html[data-theme="dark"] .task-row label{color:#dce6f5}
+html[data-theme="dark"] .modal-backdrop{background:#02060dcc}
+html[data-theme="dark"] .repair-modal{background:#121d2e;color:#dbe5f5}
+html[data-theme="dark"] .modal-toolbar h2,html[data-theme="dark"] .repair-detail-grid strong{color:#edf3fc}
+html[data-theme="dark"] .repair-detail-grid span,html[data-theme="dark"] .receipt-heading span,html[data-theme="dark"] .receipt-heading small{color:#9aabc2}
+html[data-theme="dark"] .receipt-print-area{background:#fff;color:#202b3c;border-color:#dfe4ed}
+@media print{body *{visibility:hidden!important}.modal-backdrop,.modal-backdrop *{visibility:visible!important}.modal-backdrop{position:static;display:block;padding:0;background:transparent}.repair-modal{width:100%;max-height:none;overflow:visible;box-shadow:none;border:0;padding:0}.modal-toolbar,.repair-detail-grid,.modal-actions{display:none!important}.receipt-print-area{position:fixed;inset:0;border:0;border-radius:0;padding:24px;display:block}.receipt-print-area *{visibility:visible!important}}
