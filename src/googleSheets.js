@@ -108,10 +108,17 @@ const dateString = value => {
 };
 
 async function ensureRepairSheet() {
-  try { return await getValues("'Repair Jobs'!A1:N"); }
-  catch (error) {
-    const body = await api(':batchUpdate', { method:'POST', body:JSON.stringify({requests:[{addSheet:{properties:{title:'Repair Jobs'}}}]}) });
-    await putValues("'Repair Jobs'!A1:N1", [['ID','Service Date','Service Type','Device / Model','Customer','Labor Charge','Parts Cost','Other Costs','Amount Charged','Net Profit','Payment Status','Payment Received Date','Notes','Reserved']]);
+  const repairHeaders = ['ID','Service Date','Service Type','Device / Model','Customer','Labor Charge','Parts Cost','Other Costs','Amount Charged','Net Profit','Payment Status','Payment Received Date','Notes','Reserved'];
+  const receiptHeaders = ['Customer Phone','Customer Email','Customer Address','Service Rendered','Job Status','Receipt Number'];
+  try {
+    const rows = await getValues("'Repair Jobs'!A1:T");
+    if (!rows.length) await putValues("'Repair Jobs'!A1:N1", [repairHeaders]);
+    await putValues("'Repair Jobs'!O1:T1", [receiptHeaders]);
+    return rows;
+  } catch (error) {
+    await api(':batchUpdate', { method:'POST', body:JSON.stringify({requests:[{addSheet:{properties:{title:'Repair Jobs'}}}]}) });
+    await putValues("'Repair Jobs'!A1:N1", [repairHeaders]);
+    await putValues("'Repair Jobs'!O1:T1", [receiptHeaders]);
     return [];
   }
 }
@@ -165,7 +172,7 @@ export async function loadSpreadsheetData() {
     await putValues(`'Payout History'!G${item.row}`, [[item.id]]);
   }
 
-  const repairs = repairRows.slice(1).filter(row => row[0]).map(row => ({ id:String(row[0]), serviceDate:dateString(row[1]), serviceType:String(row[2]||''), device:String(row[3]||''), customer:String(row[4]||''), labor:Number(row[5])||0, partsCost:Number(row[6])||0, otherCosts:Number(row[7])||0, amountCharged:Number(row[8])||0, netProfit:Number(row[9])||0, paymentStatus:String(row[10]||'Paid'), paymentReceivedDate:dateString(row[11]), notes:String(row[12]||'') }));
+  const repairs = repairRows.slice(1).filter(row => row[0]).map(row => ({ id:String(row[0]), serviceDate:dateString(row[1]), serviceType:String(row[2]||''), device:String(row[3]||''), customer:String(row[4]||''), labor:Number(row[5])||0, partsCost:Number(row[6])||0, otherCosts:Number(row[7])||0, amountCharged:Number(row[8])||0, netProfit:Number(row[9])||0, paymentStatus:String(row[10]||'Paid'), paymentReceivedDate:dateString(row[11]), notes:String(row[12]||''), customerPhone:String(row[14]||''), customerEmail:String(row[15]||''), customerAddress:String(row[16]||''), serviceRendered:String(row[17]||''), repairStatus:String(row[18]||'Completed'), receiptNumber:String(row[19]||'') }));
 
   let target = 10000;
   const targetRow = settingRows.find(row => String(row[0] || '').trim() === 'Monthly income target');
@@ -219,12 +226,12 @@ export async function saveSpreadsheetData(data, deletedIds = { earnings: [], pay
     x.platform, x.payoutDate, Number(x.amount) || 0, x.reference || '',
     x.relatedPeriod || '', x.notes || '', x.id
   ]);
-  const repairRows = mergedRepairs.map(x => [x.id, x.serviceDate || '', x.serviceType || '', x.device || '', x.customer || '', Number(x.labor)||0, Number(x.partsCost)||0, Number(x.otherCosts)||0, Number(x.amountCharged)||0, Number(x.netProfit ?? (Number(x.amountCharged||0)-Number(x.partsCost||0)-Number(x.otherCosts||0)))||0, x.paymentStatus || 'Paid', x.paymentReceivedDate || '', x.notes || '', '']);
+  const repairRows = mergedRepairs.map(x => [x.id, x.serviceDate || '', x.serviceType || '', x.device || '', x.customer || '', Number(x.labor)||0, Number(x.partsCost)||0, Number(x.otherCosts)||0, Number(x.amountCharged)||0, Number(x.netProfit ?? (Number(x.amountCharged||0)-Number(x.partsCost||0)-Number(x.otherCosts||0)))||0, x.paymentStatus || 'Paid', x.paymentReceivedDate || '', x.notes || '', '', x.customerPhone || '', x.customerEmail || '', x.customerAddress || '', x.serviceRendered || '', x.repairStatus || 'Completed', x.receiptNumber || '']);
 
   const updates = [];
   if (earningRows.length) updates.push({ range: "'Earnings Reports'!A5:M", majorDimension: 'ROWS', values: earningRows });
   if (payoutRows.length) updates.push({ range: "'Payout History'!A5:G", majorDimension: 'ROWS', values: payoutRows });
-  if (repairRows.length) updates.push({ range: "'Repair Jobs'!A2:N", majorDimension: 'ROWS', values: repairRows });
+  if (repairRows.length) updates.push({ range: "'Repair Jobs'!A2:T", majorDimension: 'ROWS', values: repairRows });
   if (updates.length) {
     await api('/values:batchUpdate', {
       method: 'POST',
@@ -239,7 +246,7 @@ export async function saveSpreadsheetData(data, deletedIds = { earnings: [], pay
   if (existingEarningCount > earningRows.length) clears.push("'Earnings Reports'!A" + (5 + earningRows.length) + ":M" + (4 + existingEarningCount));
   if (existingPayoutCount > payoutRows.length) clears.push("'Payout History'!A" + (5 + payoutRows.length) + ":G" + (4 + existingPayoutCount));
   const existingRepairCount = cloud._syncMeta?.repairRows || 0;
-  if (existingRepairCount > repairRows.length) clears.push("'Repair Jobs'!A" + (2 + repairRows.length) + ":N" + (1 + existingRepairCount));
+  if (existingRepairCount > repairRows.length) clears.push("'Repair Jobs'!A" + (2 + repairRows.length) + ":T" + (1 + existingRepairCount));
   if (clears.length) await api('/values:batchClear', { method: 'POST', body: JSON.stringify({ ranges: clears }) });
 
   const targetIndex = cloud._syncMeta?.targetRow;
