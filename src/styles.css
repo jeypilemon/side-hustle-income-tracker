@@ -276,7 +276,7 @@ html[data-theme="dark"] .repair-modal{background:#121d2e;color:#dbe5f5}
 html[data-theme="dark"] .modal-toolbar h2,html[data-theme="dark"] .repair-detail-grid strong{color:#edf3fc}
 html[data-theme="dark"] .repair-detail-grid span,html[data-theme="dark"] .receipt-heading span,html[data-theme="dark"] .receipt-heading small{color:#9aabc2}
 html[data-theme="dark"] .receipt-print-area{background:#fff;color:#202b3c;border-color:#dfe4ed}
-@media print{body *{visibility:hidden!important}.modal-backdrop,.modal-backdrop *{visibility:visible!important}.modal-backdrop{position:static;display:block;padding:0;background:transparent}.repair-modal{width:100%;max-height:none;overflow:visible;box-shadow:none;border:0;padding:0}.modal-toolbar,.repair-detail-grid,.modal-actions{display:none!important}.receipt-print-area{position:fixed;inset:0;border:0;border-radius:0;padding:24px;display:block}.receipt-print-area *{visibility:visible!important}}
+
 
 
 /* Sensitive-data-light landing dashboard */
@@ -316,3 +316,23 @@ html[data-theme="dark"] .dashboard-task-row label,html[data-theme="dark"] .dashb
 html[data-theme="dark"] .dashboard-task-entry input{background:#0d1726;border-color:#35465e;color:#e4eaf5}
 @media(max-width:900px){.dashboard-welcome{align-items:flex-start;flex-direction:column}.dashboard-quick-actions{width:100%}}
 @media(max-width:700px){.dashboard-stat-row{grid-template-columns:1fr}.dashboard-grid{grid-template-columns:1fr}.dashboard-task-entry{grid-template-columns:minmax(0,1fr) 120px auto}}
+
+@page{size:A4 portrait;margin:12mm}
+@media print{
+  html,body,#root{width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;overflow:visible!important;background:#fff!important}
+  body *{visibility:hidden!important}
+  #root,.app-shell,.main,.modal-backdrop,.repair-modal,.receipt-print-area{display:block!important}
+  .app-shell{min-height:0!important;height:auto!important}
+  .sidebar,.main>:not(.modal-backdrop){display:none!important}
+  .main{width:auto!important;max-width:none!important;margin:0!important;padding:0!important}
+  .modal-backdrop{position:static!important;inset:auto!important;width:auto!important;height:auto!important;display:block!important;overflow:visible!important;padding:0!important;background:transparent!important}
+  .repair-modal{position:static!important;width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:#fff!important;color:#111!important}
+  .modal-toolbar,.repair-detail-grid,.modal-actions{display:none!important}
+  .receipt-print-area{position:static!important;inset:auto!important;display:block!important;visibility:visible!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;margin:0!important;padding:5mm!important;border:1px solid #bbb!important;border-radius:0!important;background:#fff!important;color:#111!important;page-break-inside:avoid!important;break-inside:avoid-page!important}
+  .receipt-print-area *{visibility:visible!important}
+  .receipt-print-area table,.receipt-print-area thead,.receipt-print-area tbody,.receipt-print-area tr{page-break-inside:avoid!important;break-inside:avoid!important}
+  .receipt-print-area th,.receipt-print-area td{padding:5px 4px!important}
+  .receipt-heading{margin-bottom:8px!important;padding-bottom:8px!important}
+  .receipt-client,.receipt-service{margin-bottom:8px!important;line-height:1.25!important}
+  .receipt-payment{margin-top:8px!important}
+}
