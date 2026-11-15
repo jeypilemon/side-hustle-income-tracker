@@ -277,3 +277,42 @@ html[data-theme="dark"] .modal-toolbar h2,html[data-theme="dark"] .repair-detail
 html[data-theme="dark"] .repair-detail-grid span,html[data-theme="dark"] .receipt-heading span,html[data-theme="dark"] .receipt-heading small{color:#9aabc2}
 html[data-theme="dark"] .receipt-print-area{background:#fff;color:#202b3c;border-color:#dfe4ed}
 @media print{body *{visibility:hidden!important}.modal-backdrop,.modal-backdrop *{visibility:visible!important}.modal-backdrop{position:static;display:block;padding:0;background:transparent}.repair-modal{width:100%;max-height:none;overflow:visible;box-shadow:none;border:0;padding:0}.modal-toolbar,.repair-detail-grid,.modal-actions{display:none!important}.receipt-print-area{position:fixed;inset:0;border:0;border-radius:0;padding:24px;display:block}.receipt-print-area *{visibility:visible!important}}
+
+
+/* Sensitive-data-light landing dashboard */
+.dashboard-home{display:grid;gap:16px}
+.dashboard-welcome{display:flex;align-items:center;justify-content:space-between;gap:22px;padding:26px 30px;border-radius:16px;background:linear-gradient(115deg,#172847,#284c93);color:#fff;box-shadow:0 8px 24px #243b6717}
+.dashboard-welcome h2{font:800 24px/1.2 Manrope;margin:5px 0}
+.dashboard-welcome p:not(.eyebrow){font-size:12px;line-height:1.55;color:#c2d0e7;margin:8px 0 0;max-width:480px}
+.dashboard-quick-actions{display:flex;gap:9px;flex-wrap:wrap}
+.dashboard-stat-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.dashboard-stat-row button{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;padding:15px 17px;border:1px solid #e8ecf2;border-radius:12px;background:#fff;color:#28364c;cursor:pointer}
+.dashboard-stat-row button:hover{border-color:#9bb0e5}
+.dashboard-stat-row span{font-size:11px;color:#77849a}
+.dashboard-stat-row strong{font:800 20px Manrope;color:#3157d5}
+.dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.dashboard-card{margin:0;min-width:0}
+.dashboard-task-entry{display:grid;grid-template-columns:minmax(0,1fr) 135px auto;gap:7px;margin-bottom:10px}
+.dashboard-task-entry input{min-width:0;width:100%;border:1px solid #dfe4ed;border-radius:7px;padding:9px 10px;color:#24334a;background:#fff;font:inherit;font-size:11px}
+.dashboard-list{display:grid}
+.dashboard-task-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-top:1px solid #edf0f4}
+.dashboard-task-row label{display:flex;gap:8px;align-items:center;min-width:0;font-size:12px}
+.dashboard-task-row label span{overflow-wrap:anywhere}
+.dashboard-task-row input{accent-color:#3157d5}
+.dashboard-task-row small{font-size:10px;color:#8793a5;white-space:nowrap}
+.dashboard-repair-row{width:100%;display:grid;gap:4px;text-align:left;padding:11px 0;border:0;border-top:1px solid #edf0f4;background:transparent;color:inherit;cursor:pointer}
+.dashboard-repair-row:hover strong{color:#3157d5}
+.dashboard-repair-row span,.dashboard-repair-row small{font-size:10px;color:#8793a5}
+.dashboard-repair-row strong{font-size:12px;color:#263751}
+.dashboard-repair-row.recent{grid-template-columns:100px minmax(0,1fr);align-items:center}
+.dashboard-repair-row.recent strong{grid-column:2;grid-row:1}
+.dashboard-repair-row.recent small{grid-column:2;grid-row:2}
+.dashboard-add-job{margin-top:10px}
+html[data-theme="dark"] .dashboard-stat-row button{background:#121d2e;border-color:#24334a;color:#dbe5f5}
+html[data-theme="dark"] .dashboard-stat-row span{color:#9aabc2}
+html[data-theme="dark"] .dashboard-stat-row strong{color:#81a8ff}
+html[data-theme="dark"] .dashboard-task-row,html[data-theme="dark"] .dashboard-repair-row{border-color:#29384d}
+html[data-theme="dark"] .dashboard-task-row label,html[data-theme="dark"] .dashboard-repair-row strong{color:#dce6f5}
+html[data-theme="dark"] .dashboard-task-entry input{background:#0d1726;border-color:#35465e;color:#e4eaf5}
+@media(max-width:900px){.dashboard-welcome{align-items:flex-start;flex-direction:column}.dashboard-quick-actions{width:100%}}
+@media(max-width:700px){.dashboard-stat-row{grid-template-columns:1fr}.dashboard-grid{grid-template-columns:1fr}.dashboard-task-entry{grid-template-columns:minmax(0,1fr) 120px auto}}
