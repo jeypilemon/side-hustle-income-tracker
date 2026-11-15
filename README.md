@@ -1,6 +1,8 @@
-# Side Hustle Income Tracker
+# SideTracked
 
-A local-first React app for tracking creator and affiliate earnings and actual payouts.
+*Your side income, on track.*
+
+A local-first React app for tracking creator, affiliate, repair, freelance earnings, and actual payouts.
 
 ## Features
 - Track YouTube, TikTok Affiliate, Shopee Affiliate, Lazada Affiliate, and other income streams.
