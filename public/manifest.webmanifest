@@ -1,0 +1,17 @@
+{
+  "name": "SideTracked",
+  "short_name": "SideTracked",
+  "description": "Your side income, on track.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#101827",
+  "theme_color": "#101827",
+  "icons": [
+    {
+      "src": "/sidetracked-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
